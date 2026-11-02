@@ -1,0 +1,3 @@
+BAZARIX (version local, sin backend)
+Abre index.html con Live Server (VS Code) o con: npx serve .   (o python -m http.server 5500)
+Los datos se guardan en el navegador (localStorage). Los graficos, PDF y Excel necesitan internet.

@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- ═══════════════════════════════════════════════════════════════
+       META Y RECURSOS EXTERNOS
+  ═══════════════════════════════════════════════════════════════ -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAZARIX — Gestión de Bazares</title>
+  <link rel="icon" type="image/svg+xml" href="BAZARIX-svg.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script>/* Restaura el color de la interfaz (⚙️) antes de pintar */
+    try { var h = localStorage.getItem("BAZARIX_THEME_ACCENT");
+      if (/^#[0-9a-f]{6}$/i.test(h || "")) { var r = document.documentElement.style; r.setProperty("--color-accent", h);
+        r.setProperty("--accent-rgb", parseInt(h.slice(1, 3), 16) + "," + parseInt(h.slice(3, 5), 16) + "," + parseInt(h.slice(5, 7), 16)); } } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="Styles.css">
+  <link rel="stylesheet" href="plano.css">
+  <!-- Layout y estilos en Styles.css -->
+</head>
+<body class="dark">
+<script>try { if (localStorage.getItem("BAZARIX_THEME_MODE") === "light") document.body.classList.remove("dark"); } catch (e) {}</script>
+
+<div class="app-layout">
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       # SIDEBAR — BARRA LATERAL DE NAVEGACIÓN
+  ═══════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- # SIDEBAR / Logo -->
+    <div class="sidebar-logo">
+      <img class="logo-icon" src="BAZARIX-svg.svg" alt="">
+      <span>BAZARIX</span>
+    </div>
+
+    <!-- # SIDEBAR / Navegación principal
+         Agrupada por tema (no alfabética ni de alta), para que las opciones
+         relacionadas se escaneen juntas. Expositores guardados tiene acceso
+         directo porque es un catálogo global reutilizable entre bazares.
+         [EDITABLE: agrega más botones .nav-item aquí para nuevas secciones] -->
+    <!-- Nivel 1: navegación general (siempre visible) -->
+    <nav class="sidebar-nav nav-global" aria-label="Navegación general">
+      <button class="nav-item" onclick="switchTab('inicio')">🏠 Inicio</button>
+      <button class="nav-item" onclick="switchTab('bazares')">🏪 Mis Bazares</button>
+      <button class="nav-item" onclick="switchTab('comparar')">📊 Comparar Bazares</button>
+      <button class="nav-item" onclick="switchTab('plantillas')">💾 Expositores guardados</button>
+      <button class="nav-item" onclick="switchTab('categorias')">🏷️ Catálogos</button>
+    </nav>
+
+    <!-- Nivel 2: navegación del bazar abierto (oculta si no hay bazar) -->
+    <nav class="sidebar-nav nav-bazaar" id="bazaar-nav" aria-label="Navegación del bazar">
+      <div class="nav-bazaar-label"><label for="nav-bazaar-select">Bazar:</label> <select id="nav-bazaar-select" class="nav-bazaar-select" onchange="onNavBazaarChange(this.value)" aria-label="Cambiar de bazar"></select></div>
+      <button class="nav-item active" onclick="switchTab('ficha')">📝 Panel del bazar</button>
+      <button class="nav-item" onclick="switchTab('expositores')">👥 Expositores</button>
+      <div class="nav-group" data-group-color="purple">
+        <div class="nav-group-label">Planeación</div>
+        <div class="nav-menu">
+        <button class="nav-item" onclick="switchTab('staff')">🙋 Staff</button>
+        <button class="nav-item" onclick="switchTab('tareas')">✅ Tareas (Previo / Post)</button>
+        <button class="nav-item" onclick="switchTab('compras')">🛒 Lista de Compras</button>
+        <button class="nav-item" onclick="switchTab('minuto-a-minuto')">🕒 Minuto a Minuto</button>
+        <button class="nav-item" onclick="switchTab('invitados')">🎟️ Asistencia de Expositores</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group-color="gold">
+        <div class="nav-group-label">Finanzas</div>
+        <div class="nav-menu">
+        <button class="nav-item" onclick="switchTab('finanzas')">💰 Control de Pagos</button>
+        <button class="nav-item" onclick="switchTab('costos')">📊 Costos del Evento</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group-color="red">
+        <div class="nav-group-label">Evento en vivo</div>
+        <div class="nav-menu">
+        <button class="nav-item" onclick="switchTab('mapa')">🗺️ Plano del Evento</button>
+        <button class="nav-item" onclick="switchTab('dia-evento')">🎪 Día del Evento</button>
+        </div>
+      </div>
+      <div class="nav-group" data-group-color="green">
+        <div class="nav-group-label">Monitoreo</div>
+        <div class="nav-menu">
+        <button class="nav-item" onclick="switchTab('estadisticas')">📈 Métricas y Gráficas</button>
+        <button class="nav-item" onclick="switchTab('alertas')" style="position:relative;">
+          ⚠️ Alertas
+          <span id="alert-badge-nav" style="display:none;margin-left:auto;background:var(--color-danger);color:#fff;border-radius:999px;font-size:9px;font-weight:800;padding:1px 5px;">0</span>
+        </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- # SIDEBAR / Footer: modo oscuro + menú de respaldo -->
+    <div class="sidebar-footer">
+      <span id="save-indicator" class="save-indicator" aria-live="polite"></span>
+      <!-- Engranaje: modo claro/oscuro, color de la interfaz y color del bazar activo -->
+      <div style="position:relative;">
+        <button class="btn-icon btn-settings" id="btn-settings" onclick="toggleSettingsMenu()" title="Personalizar (modo y color)"
+                aria-label="Personalizar" aria-haspopup="true" aria-expanded="false">⚙️</button>
+        <div id="settings-menu" class="settings-menu" role="dialog" aria-label="Personalizar"></div>
+      </div>
+      <!-- Menú de respaldo: el <div> es HERMANO del <button>, no hijo -->
+      <div style="position:relative;">
+        <button class="btn-icon" style="width:100%;" onclick="toggleBackupMenu()">
+          💾 Copia de Seguridad
+        </button>
+        <div id="backup-menu" class="backup-menu">
+          <div class="backup-menu-label">Exportar / Importar</div>
+          <button class="backup-menu-item" onclick="exportarJSON()">📄 Guardar Datos (JSON)</button>
+          <button class="backup-menu-item" onclick="exportarJSONCompleto()">🛡️ Crear Respaldo Completo</button>
+          <button class="backup-menu-item" onclick="openBackupExport()">📦 Exportar Bazar (completo o por partes)</button>
+          <button class="backup-menu-item" onclick="exportarPlanEventoXLSX()">📗 Exportar Plan del Evento (Excel .xlsx)</button>
+          <button class="backup-menu-item" onclick="exportarCSV()">📊 Excel (.CSV en Columnas)</button>
+          <button class="backup-menu-item" onclick="exportarMinutoAMinutoCSV()">🕒 Excel Minuto a Minuto</button>
+          <div class="backup-menu-divider"></div>
+          <label class="backup-menu-item" style="cursor:pointer;">
+            📥 Importar (respaldo o bazar)
+            <input type="file" id="import-json-input" accept=".json" style="display:none"
+                   onchange="handleImportJSON(event)">
+          </label>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+  <!-- / #SIDEBAR -->
+
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       # MAIN-AREA — ÁREA PRINCIPAL
+  ═══════════════════════════════════════════════════════════════ -->
+  <main class="main-area">
+
+    <!-- # HEADER — Barra superior sticky -->
+    <header class="header">
+      <button class="btn-icon" id="btn-toggle-sidebar" title="Menú" style="flex-shrink:0;">☰</button>
+      <h1 class="header-title" id="page-title">Ficha del Evento</h1>
+    </header>
+    <!-- / #HEADER -->
+
+
+    <!-- ═════════════════════════════════════════════════════════════
+         # PAGE-CONTENT — Contenedor de todas las secciones/tabs
+    ═════════════════════════════════════════════════════════════ -->
+    <div class="page-content">
+
+      <section id="sec-inicio" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Inicio</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Abre un bazar para continuar su organización.</p>
+          </div>
+          <button class="btn-primary" onclick="createBazaar()">+ Nuevo Bazar</button>
+        </div>
+        <div id="bazaar-home-grid" class="bazaar-home-grid"></div>
+      </section>
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: EXPOSITORES (tab activo por defecto)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-expositores" class="page-section">
+        <div class="section-header"><h2 class="section-title">Directorio de Expositores</h2></div>
+
+        <!-- Barra de acciones de Expositores: buscar y agregar -->
+        <div class="filter-bar expositores-toolbar">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" id="global-search" placeholder="Buscar expositor, negocio o mesa..."
+                   oninput="handleSearch(this.value)" aria-label="Buscar expositor">
+          </div>
+          <div class="control-group-inline">
+            <button class="btn-secondary" onclick="openPickerGuardados()" title="Agregar un expositor desde los guardados">💾 Traer de guardados</button>
+            <button class="btn-primary" onclick="openModalExpositorForCurrentCategory()">+ Nuevo Expositor</button>
+          </div>
+        </div>
+
+        <div id="expositor-day-filters" class="expositor-day-filters" hidden></div>
+
+        <!-- Barra de filtros -->
+        <div class="filter-bar">
+          <button class="filter-chip active" onclick="setFilterCategory('all', this)">
+            Todas las categorías
+          </button>
+          <div id="category-chips-container" style="display:inline-flex;gap:8px;flex-wrap:wrap;"></div>
+          <select class="filter-select" onchange="setFilterStatus(this.value)">
+            <option value="all">Todos los pagos</option>
+            <option value="paid">✅ Pagados</option>
+            <option value="unpaid">⏳ Pendientes</option>
+          </select>
+          <select class="filter-select" id="expositor-sort" aria-label="Ordenar expositores"
+                  onchange="setExpositorSort(this.value)">
+            <option value="recent">Más recientes</option>
+            <option value="az">Nombre: A a Z</option>
+            <option value="za">Nombre: Z a A</option>
+          </select>
+          <div style="display:flex;gap:4px;">
+            <button class="view-toggle-btn canvas-mode-btn active" data-view="cards"
+                    onclick="setExpositorView('cards')" title="Vista tarjetas">⊞ Tarjetas</button>
+            <button class="view-toggle-btn canvas-mode-btn" data-view="table"
+                    onclick="setExpositorView('table')" title="Vista tabla">☰ Tabla</button>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="switchTab('alertas')"
+                  style="position:relative;" title="Alertas de pago próximo o vencido">
+            ⚠️ Alertas
+            <span id="alert-badge" style="display:none;position:absolute;top:-6px;right:-6px;
+              background:var(--color-danger);color:#fff;border-radius:999px;
+              font-size:9px;font-weight:800;padding:1px 5px;min-width:16px;text-align:center;">0</span>
+          </button>
+        </div>
+
+        <!-- Grid de tarjetas — inyectado por Core.js → renderExpositores() -->
+        <div id="expositores-grid" class="cards-grid"></div>
+
+      </section>
+      <!-- / #SECCIÓN EXPOSITORES -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: CATEGORÍAS
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-categorias" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Catálogos</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              <strong>Categorías:</strong> clasifican al expositor (una por expositor) y alimentan las gráficas.
+              <strong>Características:</strong> etiquetas extra del negocio (hecho a mano, vegano…); un expositor puede tener varias.
+            </p>
+          </div>
+          <div class="control-group-inline">
+            <button class="btn-secondary" onclick="addSuggestedCatalog()" title="Agrega las que aún no tienes (no cambia ni borra nada)">✨ Agregar sugeridas</button>
+            <button class="btn-primary" id="category-add-btn" onclick="openModalCategoria()">+ Nueva categoría</button>
+          </div>
+        </div>
+        <div class="category-management-tabs" role="tablist" aria-label="Catálogo">
+          <button type="button" class="filter-chip active" id="category-tab-categoria" role="tab"
+                  aria-selected="true" onclick="setCategoriaManagementTab('categoria')">Categorías</button>
+          <button type="button" class="filter-chip" id="category-tab-caracteristica" role="tab"
+                  aria-selected="false" onclick="setCategoriaManagementTab('caracteristica')">Características</button>
+        </div>
+        <div class="catalog-search-wrap">
+          <input type="search" id="catalog-search" class="form-input"
+                 placeholder="Buscar por nombre o descripción..." aria-label="Buscar en el catálogo"
+                 oninput="renderCategorias()">
+        </div>
+        <div id="categorias-grid" class="catalog-grid"></div>
+      </section>
+      <!-- / #SECCIÓN CATEGORÍAS -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: EXPOSITORES GUARDADOS (plantillas)
+           Expositores reutilizables entre bazares.
+           [EDITABLE: usarPlantilla() en Core.js prepopula el modal de expositor]
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-plantillas" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Expositores Guardados</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Guarda expositores frecuentes con el botón 💾 en su tarjeta y úsalos en cualquier bazar.
+            </p>
+          </div>
+        </div>
+        <div id="plantillas-grid" class="cards-grid"></div>
+      </section>
+      <!-- / #SECCIÓN PLANTILLAS -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: CONTROL DE PAGOS (Finanzas)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-finanzas" class="page-section">
+        <div class="section-header"><h2 class="section-title">Control de Pagos</h2></div>
+
+        <!-- Stats de pagos -->
+        <div class="stats-row">
+          <div class="stat-card accent-green">
+            <div class="stat-icon">💵</div>
+            <div class="stat-value" id="stat-total-paid">$0</div>
+            <div class="stat-label">Recaudado</div>
+          </div>
+          <div class="stat-card accent-red">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="stat-total-pending">$0</div>
+            <div class="stat-label">Pendiente</div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🎪</div>
+            <div class="stat-value" id="stat-total-tables">0</div>
+            <div class="stat-label">Expositores</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value" id="stat-paid-percentage">0%</div>
+            <div class="stat-label">Cumplimiento</div>
+          </div>
+        </div>
+        <p style="font-size:var(--fs-xs);color:var(--color-text-muted);margin:-8px 0 var(--space-4);">
+          El desglose por categoría y el ticket promedio están en
+          <button class="link-inline" onclick="switchTab('estadisticas')">Métricas y Gráficas</button>, junto con el resto de las métricas del evento.
+        </p>
+
+        <!-- Tabla de pagos — columnas: negocio, mesa, total, adelanto, saldo, estado, acciones -->
+        <div class="payments-table-wrap">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Expositor / Negocio</th>
+                <th>Ubicación</th>
+                <th>Costo Total</th>
+                <th>Adelanto</th>
+                <th>Saldo</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="payments-table-body"></tbody>
+          </table>
+        </div>
+
+      </section>
+      <!-- / #SECCIÓN CONTROL DE PAGOS -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: COSTOS DEL EVENTO
+           Mobiliario: Costo TOTAL + cálculo automático de Costo Unitario.
+           [EDITABLE: agrega nuevos paneles de gasto entre los chart-card]
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-costos" class="page-section">
+        <div class="section-header"><h2 class="section-title">Costos del Evento</h2></div>
+
+        <div class="costos-layout">
+
+          <!-- Columna izquierda: resumen siempre visible -->
+          <aside class="chart-card costos-resumen">
+            <h3>Resumen</h3>
+            <div class="costos-kpi"><span>📥 Ingresos <small>(expositores)</small></span><strong id="cost-stat-income">$0</strong></div>
+            <div class="costos-kpi"><span>📤 Egresos</span><strong id="cost-stat-expenses">$0</strong></div>
+            <div class="costos-kpi costos-kpi-total"><span>💎 Balance</span><strong id="cost-stat-balance">$0</strong></div>
+            <div class="costos-iva">
+              <div class="form-switch" style="background:none;padding:0;">
+                <span class="switch-label">Aplicar IVA a los egresos</span>
+                <label class="switch">
+                  <input type="checkbox" id="cost-toggle-iva" onchange="updateEventCostsUI()">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div class="costos-iva-rate">
+                <label class="form-label" for="cost-iva-rate">Tasa %</label>
+                <input type="number" id="cost-iva-rate" class="form-input" value="16" min="0" max="100" step="0.5" onchange="updateEventCostsUI()">
+              </div>
+            </div>
+            <div id="cost-summary"></div>
+          </aside>
+
+          <!-- Columna derecha: mobiliario (compacto) y otros gastos (filas) -->
+          <div class="costos-main">
+            <div class="chart-card" id="costos-panel-mobiliario">
+              <h3>🪑 Mobiliario e insumos opcionales</h3>
+              <p class="form-hint" style="margin:-8px 0 12px;">Introduce el costo total del proveedor; el costo unitario se calcula solo.</p>
+
+              <div class="form-switch costos-conjunto-switch">
+                <span class="switch-label">Precio conjunto (mesas + sillas + manteles)
+                  <small class="form-hint" style="display:block;font-weight:500;">Actívalo si el proveedor da un solo precio por todo. Puedes desglosarlo en cualquier momento.</small>
+                </span>
+                <label class="switch">
+                  <input type="checkbox" id="cost-toggle-conjunto" aria-label="Precio conjunto de mobiliario" onchange="toggleMobiliarioConjunto(this.checked)">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div id="costos-conjunto-box" class="costos-conjunto-box" hidden>
+                <div class="form-group" style="margin-bottom:var(--space-2);">
+                  <label class="form-label" for="cost-total-conjunto">Costo total del paquete (MXN)</label>
+                  <input type="number" id="cost-total-conjunto" class="form-input" min="0" step="0.01" value="0" oninput="updateEventCostsUI()">
+                </div>
+                <p class="form-hint" id="costos-conjunto-incluye"></p>
+                <button type="button" class="btn-secondary btn-sm" onclick="toggleMobiliarioConjunto(false)">✂️ Desglosar paquete</button>
+              </div>
+
+              <div class="costos-table-scroll">
+                <table class="payments-table costos-table">
+                  <thead><tr><th>Incluir</th><th>Cantidad</th><th>Costo total proveedor</th><th>Unitario</th><th>Subtotal</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><div class="costos-incluir"><label class="switch"><input type="checkbox" id="cost-toggle-tables" aria-label="Incluir costo de mesas" onchange="updateEventCostsUI()"><span class="slider"></span></label><strong>Mesas</strong></div></td>
+                      <td><input type="number" id="cost-qty-tables" class="form-input" value="0" min="0" aria-label="Número de mesas" oninput="updateEventCostsUI()"></td>
+                      <td><input type="number" id="cost-total-tables" class="form-input" value="0" min="0" step="0.01" aria-label="Costo total de mesas" oninput="updateEventCostsUI()"></td>
+                      <td class="costos-total"><span id="unit-tables">$0</span></td>
+                      <td class="costos-total"><span id="subtotal-tables">$0</span></td>
+                    </tr>
+                    <tr>
+                      <td><div class="costos-incluir"><label class="switch"><input type="checkbox" id="cost-toggle-chairs" aria-label="Incluir costo de sillas" onchange="updateEventCostsUI()"><span class="slider"></span></label><strong>Sillas</strong></div></td>
+                      <td><input type="number" id="cost-qty-chairs" class="form-input" value="0" min="0" aria-label="Número de sillas" oninput="updateEventCostsUI()"></td>
+                      <td><input type="number" id="cost-total-chairs" class="form-input" value="0" min="0" step="0.01" aria-label="Costo total de sillas" oninput="updateEventCostsUI()"></td>
+                      <td class="costos-total"><span id="unit-chairs">$0</span></td>
+                      <td class="costos-total"><span id="subtotal-chairs">$0</span></td>
+                    </tr>
+                    <tr>
+                      <td><div class="costos-incluir"><label class="switch"><input type="checkbox" id="cost-toggle-manteles" aria-label="Incluir costo de manteles" onchange="updateEventCostsUI()"><span class="slider"></span></label><strong>Manteles</strong></div></td>
+                      <td><input type="number" id="cost-qty-manteles" class="form-input" value="0" min="0" aria-label="Número de manteles" oninput="updateEventCostsUI()"></td>
+                      <td><input type="number" id="cost-total-manteles" class="form-input" value="0" min="0" step="0.01" aria-label="Costo total de manteles" oninput="updateEventCostsUI()"></td>
+                      <td class="costos-total"><span id="unit-manteles">$0</span></td>
+                      <td class="costos-total"><span id="subtotal-manteles">$0</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="form-switch">
+                <span class="switch-label">¿Quieres agregar precios globales?</span>
+                <label class="switch" aria-label="Editar precios globales">
+                  <input type="checkbox" id="global-prices-toggle" onchange="toggleGlobalPrices(this.checked)">
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div id="global-prices-summary" hidden></div>
+              <div id="global-prices-details" hidden>
+                <div class="chairs-per-table-setting">
+                  <label class="form-label" for="chairs-per-table-default">Sillas incluidas por mesa</label>
+                  <input type="number" id="chairs-per-table-default" class="form-input" min="0" step="1" value="2" onchange="updateEventCostsUI()">
+                  <p class="form-hint">Se usa como cantidad inicial al registrar expositores; puedes ajustarla en cada registro.</p>
+                </div>
+                <div class="chairs-per-table-setting">
+                  <label class="form-label" for="chair-extra-unit-price">Precio global por silla extra cobrado al expositor (MXN)</label>
+                  <input type="number" id="chair-extra-unit-price" class="form-input" min="0" step="0.01" value="0" oninput="updateEventCostsUI()">
+                  <p class="form-hint">Este precio se aplica por igual a todos los expositores, incluidos los ya registrados.</p>
+                </div>
+                <div class="chairs-per-table-setting">
+                  <label class="form-label" for="table-price-default">Precio global por mesa completa (MXN)</label>
+                  <input type="number" id="table-price-default" class="form-input" min="0" step="0.01" value="0" oninput="updateEventCostsUI()">
+                  <p class="form-hint">Se sugiere como costo base al registrar un expositor (mesas × este precio). Puedes cambiarlo en cada registro.</p>
+                </div>
+                <div class="chairs-per-table-setting">
+                  <label class="form-label" for="half-table-price-default">Precio global por media mesa (MXN)</label>
+                  <input type="number" id="half-table-price-default" class="form-input" min="0" step="0.01" value="0" oninput="updateEventCostsUI()">
+                  <p class="form-hint">No es la mitad de una mesa: es el precio que tú fijes para una media mesa.</p>
+                </div>
+                <div style="margin-top:var(--space-3);">
+                  <button type="button" class="btn-secondary btn-sm" onclick="applyGlobalTablePricesToExpositores()" title="Actualiza el costo base de los expositores ya registrados">Aplicar estos precios a los expositores registrados</button>
+                  <button type="button" class="btn-secondary btn-sm" onclick="toggleGlobalPrices(false)">Listo</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card" id="costos-panel-gastos">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                <h3 style="margin-bottom:0;">🏛️ Otros gastos del evento</h3>
+                <button class="btn-primary btn-sm" onclick="addExtraCostRow()">+ Agregar</button>
+              </div>
+              <p class="form-hint" style="margin:6px 0 12px;">Renta de lugar, permisos, sonido, personal, publicidad, etc. Captura el costo total de cada gasto; el costo unitario se calcula dividiéndolo entre la cantidad.</p>
+              <div id="extra-costs-list"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+      <!-- / #SECCIÓN COSTOS DEL EVENTO -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: PLANO INTERACTIVO DEL EVENTO
+           Botones nuevos: 🗑️ Eliminar mesa seleccionada + 🔄 Limpiar todo
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-mapa" class="page-section">
+        <div class="section-header"><h2 class="section-title">Plano del Evento</h2></div>
+
+        <!-- ── BARRA SUPERIOR: Bazar/Piso + Escala + Zoom ── -->
+        <div class="map-controls-panel toolbar-card top-bar-card">
+          <div class="top-bar-left">
+          <div class="control-group-inline floor-controls">
+            <label class="form-label" style="margin:0;">Piso:</label>
+            <select id="floor-select" class="filter-select" onchange="switchFloor(this.value)" aria-label="Cambiar piso del plano"></select>
+            <button class="btn-secondary btn-sm" onclick="duplicateCurrentFloor()" title="Crear otro plano igual a este (por ejemplo, para otro día)">📋 Duplicar plano</button>
+            <span id="floor-dia-wrap" class="floor-dia-wrap" hidden>
+              <label class="form-label" for="floor-dia-select" style="margin:0;">Día del plano:</label>
+              <select id="floor-dia-select" class="filter-select" onchange="setFloorDia(this.value)" aria-label="Día al que pertenece este plano"></select>
+            </span>
+            <button class="btn-secondary btn-sm" onclick="addFloor()"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Piso</button>
+            <button class="btn-secondary btn-sm" onclick="renameCurrentFloor()" title="Cambiar el nombre del piso actual">✏️ Renombrar piso</button>
+            <button class="btn-danger btn-sm" onclick="deleteCurrentFloor()" title="Eliminar piso actual" aria-label="Eliminar piso actual"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+          </div>
+          <div class="top-bar-center control-group-inline">
+            <label class="form-label" style="margin:0;">Escala:</label>
+            <input type="number" id="map-pixels-per-meter" class="form-input" min="1" step="1"
+                   style="width:105px;" onchange="updateMapScale(this.value)">
+            <span class="form-hint">px = 1 m</span>
+            <div class="scale-bar" aria-hidden="true" title="Longitud real con el zoom actual"><span id="scale-bar-line"></span><small id="scale-bar-label">1 m</small></div>
+          </div>
+          <div class="orientation-box control-group-inline">
+            <label class="form-label" style="margin:0;">Orientación:</label>
+            <div class="segmented" id="map-orientation" role="group" aria-label="Orientación del plano">
+              <button type="button" data-value="landscape" class="active" aria-pressed="true" onclick="updateMapOrientation('landscape')">↔ Horizontal</button>
+              <button type="button" data-value="portrait" aria-pressed="false" onclick="updateMapOrientation('portrait')">↕ Vertical</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── BARRA DE HERRAMIENTAS DEL CANVAS ── -->
+        <!-- [EDITABLE: agrega más botones .canvas-mode-btn con data-mode para nuevos modos] -->
+        <div class="toolbar-card row-green-card ribbon" data-tab="plano">
+          <div class="ribbon-tabs" role="tablist"><button type="button" class="ribbon-tab active" role="tab" data-rt="plano" onclick="setRibbonTab('plano')">Plano</button><button type="button" class="ribbon-tab" role="tab" data-rt="vista" onclick="setRibbonTab('vista')">Vista</button><button type="button" class="ribbon-tab" role="tab" data-rt="imagen" onclick="setRibbonTab('imagen')">Imagen de fondo</button><button type="button" class="ribbon-tab" role="tab" data-rt="archivo" onclick="setRibbonTab('archivo')">Exportar y limpiar</button></div>
+
+          <!-- Grupo: Modos -->
+          <div class="canvas-toolbar-group" data-rt="plano">
+            <span class="canvas-toolbar-label group-title">Modo</span>
+            <div class="canvas-toolbar-group-actions group-actions">
+              <button class="canvas-mode-btn active" data-mode="select"
+                      onclick="setCanvasMode('select')" title="Mover mesas y elementos (V)"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg> Seleccionar</button>
+              <button class="canvas-mode-btn" data-mode="imgEdit"
+                      onclick="setCanvasMode('imgEdit')" title="Manipular imagen de fondo (I)"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg> Editar Imagen</button>
+              <button class="canvas-mode-btn" data-mode="zone"
+                      onclick="setCanvasMode('zone')" title="Dibujar zonas / áreas (Z)"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Zonas</button>
+            </div>
+          </div>
+
+          <!-- Grupo: Imagen de fondo -->
+          <div class="canvas-toolbar-group" data-rt="imagen">
+            <span class="canvas-toolbar-label group-title">Imagen de fondo</span>
+            <input type="file" id="floor-plan-upload" accept="image/*" style="display:none;"
+                   onchange="handleFloorPlanUpload(event)">
+               <div class="image-controls-row group-actions">
+            <button class="btn-secondary btn-sm"
+               onclick="document.getElementById('floor-plan-upload').click()"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg> Cargar</button>
+            <label class="form-label" style="margin:0;white-space:nowrap;">Opac:</label>
+            <input type="range" id="floor-plan-opacity" min="0" max="100" step="5" style="width:80px;"
+              oninput="updateFloorPlanOpacity(this.value)">
+            <output id="floor-plan-opacity-value">100%</output>
+            <div class="image-transform-controls">
+            <button class="btn-secondary btn-sm" onclick="rotateFloorPlan(90)" title="Girar imagen 90 grados">↻ 90°</button>
+            <button class="btn-secondary btn-sm" onclick="moveFloorPlan(-20, 0)">◀</button>
+            <button class="btn-secondary btn-sm" onclick="moveFloorPlan(20, 0)">▶</button>
+            <button class="btn-secondary btn-sm" onclick="moveFloorPlan(0, -20)">▲</button>
+            <button class="btn-secondary btn-sm" onclick="moveFloorPlan(0, 20)">▼</button>
+               </div>
+            <label class="form-label" style="margin:0;white-space:nowrap;">Tam:</label>
+            <input type="range" id="floor-plan-scale" min="5" max="500" step="5" style="width:90px;"
+              oninput="updateFloorPlanScale(this.value)">
+            <output id="floor-plan-scale-value">100%</output>
+               </div>
+          </div>
+
+              
+
+          <!-- Grupo: Mesas y Elementos -->
+          <div class="canvas-toolbar-group" data-rt="plano">
+              <span class="canvas-toolbar-label group-title">Añadir</span>
+              <div class="canvas-toolbar-group-actions group-actions">
+              <button class="btn-primary btn-sm" onclick="addTableToCore()" title="Agregar mesa (M)"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Mesa</button>
+              <button class="btn-secondary btn-sm" onclick="addMapElement()"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Elemento</button>
+                <button class="btn-danger btn-sm" onclick="deleteSelectedMapObject()"
+                  title="Eliminar únicamente la mesa, elemento o zona seleccionada"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Eliminar seleccionado</button>
+            </div>
+          </div>
+          <div class="canvas-toolbar-group" data-rt="plano">
+              <span class="canvas-toolbar-label group-title">Girar</span>
+              <div class="canvas-toolbar-group-actions group-actions">
+                <button class="rotation-button rotation-button-sm" onclick="rotateSelectedTable(-90)" title="Girar -90° (Shift+R)">↶</button>
+                <button class="rotation-button rotation-button-sm" onclick="rotateSelectedTable(90)" title="Girar 90° (R)">↷</button>
+              </div>
+            </div>
+
+          <!-- Grupo: Sprint 2 — capas y productividad -->
+          <div class="canvas-toolbar-group" data-rt="vista">
+            <span class="canvas-toolbar-label group-title">Capas</span>
+              <div class="canvas-toolbar-group-actions group-actions">
+                <button class="canvas-mode-btn toggle-switch-btn active" id="layer-btn-tables"
+                  onclick="toggleLayer('tables')" title="Mostrar/ocultar mesas"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M12 3v18"/></svg> Mesas</button>
+                <button class="canvas-mode-btn toggle-switch-btn active" id="layer-btn-zones"
+                  onclick="toggleLayer('zones')" title="Mostrar/ocultar zonas"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Zonas</button>
+                <button class="canvas-mode-btn toggle-switch-btn active" id="layer-btn-grid"
+                  onclick="toggleLayer('grid')" title="Mostrar/ocultar cuadrícula"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg> Cuadrícula</button>
+              </div>
+          </div>
+          <div class="canvas-toolbar-group" data-rt="vista">
+            <span class="canvas-toolbar-label group-title">Plano</span>
+              <div class="canvas-toolbar-group-actions group-actions">
+                <button class="canvas-mode-btn toggle-switch-btn active" id="btn-snap-tables"
+                  onclick="toggleSnapTables()" title="Snap entre mesas"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"/><path d="m5 8 4 4"/><path d="m12 15 4 4"/></svg> Snap</button>
+                <button class="btn-secondary btn-sm" onclick="autoNumberTables()"
+                  title="Renombrar mesas por posición A-01, B-02..."><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg> Numerar</button>
+              </div>
+          </div>
+          <!-- Grupo: Peligro -->
+          <div class="canvas-toolbar-group" data-rt="archivo">
+            <span class="canvas-toolbar-label group-title">Limpiar</span>
+            <div class="canvas-toolbar-group-actions group-actions">
+              <button class="btn-danger btn-sm" onclick="resetBazaarCanvas()"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Todo el Plano</button>
+            </div>
+          </div>
+
+          <!-- Grupo: Exportación -->
+          <div class="canvas-toolbar-group" data-rt="archivo">
+            <span class="canvas-toolbar-label group-title">Exportar</span>
+            <div class="canvas-toolbar-group-actions group-actions">
+              <button class="btn-primary btn-sm" onclick="exportarMapaPDF()" title="Descargar el plano actual como PDF"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> Mapa PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ÁREA PRINCIPAL: Canvas + Paneles laterales ── -->
+        <div class="map-main-area">
+
+          <!-- Canvas drag-and-drop -->
+          <div class="map-viewport" style="flex:1;min-width:300px;position:relative;">
+            <canvas id="bazaar-canvas" width="900" height="560"
+                    style="cursor:grab;display:block;width:100%;"></canvas>
+            <!-- Badge de modo activo sobre el canvas -->
+            <div id="canvas-mode-badge" style="
+                position:absolute;top:10px;left:10px;
+                background:var(--color-accent);color:#fff;
+                font-size:var(--fs-xs);font-weight:700;padding:4px 10px;
+                border-radius:var(--radius-full);pointer-events:none;opacity:.85;">
+              🖱️ Seleccionar
+            </div>
+
+            <!-- Zoom flotante: antes ocupaba una fila entera de la barra superior -->
+            <div class="map-zoom-float">
+              <button onclick="zoomBazaar(0.15)" title="Acercar">➕</button>
+              <button onclick="resetBazaarZoom()" title="Restablecer zoom">🔄</button>
+              <button onclick="zoomBazaar(-0.15)" title="Alejar">➖</button>
+            </div>
+          </div>
+
+          <!-- Panel derecho: Asistencia + Zonas -->
+          <div class="map-side-panel" data-tab="mesas">
+            <div class="side-tabs" role="tablist"><button type="button" class="side-tab active" data-tab="mesas" role="tab" onclick="setSideTab('mesas')"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg> Mesas</button><button type="button" class="side-tab" data-tab="zonas" role="tab" onclick="setSideTab('zonas')"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Zonas</button></div>
+
+            <!-- Panel de asistencia de mesas -->
+            <div class="chart-card" style="flex-shrink:0;">
+              <h3>📋 Asistencia y Mesas</h3>
+              <p style="font-size:var(--fs-xs);color:var(--color-text-muted);margin-bottom:10px;">
+                Toggle asistencia o elimina con 🗑️.
+              </p>
+              <div id="checklist-container" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <!-- Panel de zonas (visible solo en modo "zone") -->
+            <!-- [EDITABLE: agrega aquí más controles de zonas si los necesitas] -->
+            <div id="zones-panel" class="chart-card" style="display:none;flex-shrink:0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;">🕸️ Zonas del Plano</h3>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-secondary btn-sm" onclick="exportZonesJSON()">📥 Exportar</button>
+                  <button class="btn-danger btn-sm" onclick="clearAllZones()">🗑️ Todas</button>
+                </div>
+              </div>
+              <p style="font-size:var(--fs-xs);color:var(--color-text-muted);margin-bottom:10px;">
+                Clic → añade punto. Cierra con clic en el 1.er punto, doble clic, o
+                <kbd style="font-size:10px;padding:1px 4px;border:1px solid var(--color-border);border-radius:3px;">clic derecho</kbd> para cancelar.
+              </p>
+              <div id="zones-list" style="max-height:260px;overflow-y:auto;"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Instrucciones dinámicas (cambian con el modo) -->
+        <div id="map-help-row" style="margin-top:10px;">
+          <p class="map-help-text" id="map-help-select">
+            💡 <strong>Arrastrar plano:</strong> clic en espacio vacío. |
+            <strong>Mover mesa:</strong> clic y arrastra. |
+            <strong>Editar mesa:</strong> doble clic. | <strong>Atajos:</strong> V · I · Z · M · R · Supr · Esc.
+          </p>
+          <p class="map-help-text" id="map-help-imgEdit" style="display:none;color:var(--color-accent2);">
+            📐 <strong>Modo Editar Imagen:</strong> arrastra la imagen para moverla.
+            Arrastra los <strong>8 handles blancos</strong> para redimensionarla libremente.
+            La rueda del ratón hace zoom.
+          </p>
+          <p class="map-help-text" id="map-help-zone" style="display:none;color:var(--color-accent);">
+            🕸️ <strong>Modo Zonas:</strong> clic = añadir punto · Clic en el ●primer punto o doble clic = cerrar zona ·
+            Clic derecho = cancelar · Arrastra puntos para editarlos.
+          </p>
+        </div>
+
+      </section>
+      <!-- / #SECCIÓN PLANO DEL EVENTO -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: LISTA DE INVITADOS
+           Por bazar. Columnas: Nombre, Notas, Confirmó, Asistió, Eliminar.
+           [EDITABLE: agrega campos a saveInvitadoHandler() en Core.js]
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-invitados" class="page-section">
+
+        <!-- Stats de invitados -->
+        <div class="stats-row" style="margin-bottom:var(--space-5);">
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🎟️</div>
+            <div class="stat-value" id="inv-stat-total">0</div>
+            <div class="stat-label">Total de Expositores</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="inv-stat-confirmados">0</div>
+            <div class="stat-label">Confirmados</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">🙋</div>
+            <div class="stat-value" id="inv-stat-asistieron">0</div>
+            <div class="stat-label">Asistieron</div>
+          </div>
+        </div>
+
+        <div class="section-header" style="justify-content:space-between;">
+          <h2 class="section-title">ASISTENCIA DE EXPOSITORES</h2>
+          <button class="btn-primary" onclick="openModalInvitado()">+ Agregar Expositor</button>
+        </div>
+
+        <!-- Tabla de invitados -->
+        <div class="payments-table-wrap">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Expositor</th>
+                <th>Notas</th>
+                <th>Confirmó asistencia</th>
+                <th>Asistió al evento</th>
+                <th>Eliminar</th>
+              </tr>
+            </thead>
+            <tbody id="invitados-list"></tbody>
+          </table>
+        </div>
+
+      </section>
+      <!-- / #SECCIÓN LISTA DE EXPOSITORES -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: MINUTO A MINUTO
+      ───────────────────────────────────────────────────────── -->
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: PANEL DEL BAZAR
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-ficha" class="page-section active">
+        <header class="panel-event-header" id="ficha-card">
+          <div class="panel-event-heading">
+            <h2 class="section-title">Panel del bazar</h2>
+            <div id="ficha-datos" class="panel-event-details"></div>
+          </div>
+          <div class="panel-event-actions">
+            <button type="button" class="btn-secondary" id="btn-toggle-ficha" onclick="toggleFichaForm()"
+                    aria-expanded="false" aria-controls="ficha-form-card">Editar ficha</button>
+            <button type="button" class="btn-primary" onclick="exportarPlanEventoXLSX()">Exportar plan (Excel)</button>
+          </div>
+        </header>
+        <div id="ficha-form-card" class="panel-event-form" hidden>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ficha-nombre">Nombre del evento</label>
+              <input id="ficha-nombre" class="form-input" type="text" onchange="updateFichaField('nombre', this.value)">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ficha-fecha">Fecha del evento</label>
+              <input id="ficha-fecha" class="form-input" type="date" onchange="updateFichaField('fecha', this.value)">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-switch">
+              <span class="switch-label">¿El evento dura más de 1 día?</span>
+              <label class="switch" aria-label="¿El evento dura más de 1 día?">
+                <input type="checkbox" id="ficha-multidia" onchange="toggleMultiDia(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div id="ficha-dias-box" class="ficha-dias-box" hidden>
+            <div id="ficha-dias-list"></div>
+            <button type="button" class="btn-secondary btn-sm" onclick="addDiaEvento()">+ Agregar día</button>
+            <p class="form-hint">Pon nombre y fecha a cada día. Los expositores podrán elegir en qué días participan.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ficha-objetivo">Objetivo del evento</label>
+            <textarea id="ficha-objetivo" class="form-textarea" oninput="debouncedUpdateFichaField('objetivo', this.value)"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ficha-lideres">Líder o líderes del evento</label>
+              <input id="ficha-lideres" class="form-input" type="text" oninput="debouncedUpdateFichaField('lideres', this.value)">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ficha-publico">Público al que va dirigido</label>
+              <input id="ficha-publico" class="form-input" type="text" oninput="debouncedUpdateFichaField('publico', this.value)">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="ficha-asistentes">Número de personas asistentes</label>
+              <input id="ficha-asistentes" class="form-input" type="number" min="0" onchange="updateFichaField('asistentes', this.value)">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ficha-staff">Personas consideradas para staff</label>
+              <input id="ficha-staff" class="form-input" type="number" min="0" onchange="updateFichaField('staff', this.value)">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="ficha-lugar">Lugar o lugares del evento</label>
+              <input id="ficha-lugar" class="form-input" type="text" oninput="debouncedUpdateFichaField('lugar', this.value)">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="ficha-presupuesto-base">Presupuesto base</label>
+              <input id="ficha-presupuesto-base" class="form-input" type="number" min="0" step="0.01"
+                     inputmode="decimal" placeholder="Ej. 15000" aria-describedby="ficha-presupuesto-ayuda"
+                     onchange="updateFichaField('presupuestoBase', this.value)">
+              <small id="ficha-presupuesto-ayuda" class="form-hint">Es un límite de referencia; no modifica los gastos registrados.</small>
+            </div>
+          </div>
+        </div>
+        <div id="ficha-resumen" class="panel-kpi-strip" aria-label="Resumen financiero"></div>
+        <p id="panel-budget-status" class="panel-budget-status" role="status" aria-live="polite"></p>
+        <div class="panel-main-grid">
+          <section class="chart-card panel-work-card" aria-labelledby="panel-work-title">
+            <div class="panel-block-heading">
+              <div>
+                <h3 id="panel-work-title">Centro de tareas y alertas</h3>
+                <p>Seguimiento de pendientes del evento en un solo lugar.</p>
+              </div>
+            </div>
+            <div class="panel-work-tabs" role="tablist" aria-label="Tareas y alertas" onkeydown="handlePanelTabKey(event)">
+              <button type="button" id="panel-tab-tareas" class="panel-work-tab" role="tab"
+                      aria-controls="panel-content-tareas" aria-selected="true" tabindex="0"
+                      onclick="setPanelChecklistTab('tareas')">
+                Tareas <span id="panel-tareas-overdue" class="panel-tab-badge" hidden></span>
+              </button>
+              <button type="button" id="panel-tab-alertas" class="panel-work-tab" role="tab"
+                      aria-controls="panel-content-alertas" aria-selected="false" tabindex="-1"
+                      onclick="setPanelChecklistTab('alertas')">
+                Alertas <span id="panel-alertas-overdue" class="panel-tab-badge" hidden></span>
+              </button>
+            </div>
+            <div id="panel-content-tareas" class="panel-work-tab-content" role="tabpanel"
+                 aria-labelledby="panel-tab-tareas">
+              <div id="panel-checklist" class="panel-checklist" aria-live="polite"></div>
+              <div class="panel-checklist-actions">
+                <button type="button" class="link-inline" onclick="switchTab('tareas')">Ver todas las tareas →</button>
+                <button type="button" class="link-inline" onclick="switchTab('compras')">Gestionar artículos</button>
+              </div>
+            </div>
+            <div id="panel-content-alertas" class="panel-work-tab-content" role="tabpanel"
+                 aria-labelledby="panel-tab-alertas" hidden>
+              <div id="panel-alertas" class="panel-alert-list" aria-live="polite"></div>
+              <div class="panel-checklist-actions">
+                <button type="button" class="link-inline" onclick="switchTab('alertas')">Ver todas las alertas →</button>
+              </div>
+            </div>
+          </section>
+          <section class="chart-card panel-progress-card" aria-labelledby="panel-progress-title">
+            <div class="panel-block-heading">
+              <div>
+                <h3 id="panel-progress-title">Avance del evento</h3>
+                <p>Progreso de pagos, asistencia y confirmaciones.</p>
+              </div>
+            </div>
+            <div id="panel-metricas" class="panel-progress-list"></div>
+            <button type="button" class="btn-secondary panel-metrics-link" onclick="switchTab('estadisticas')">
+              Ver gráficas y métricas completas →
+            </button>
+          </section>
+        </div>
+      </section>
+      <!-- / #SECCIÓN FICHA -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: STAFF (Roles + Responsables del evento)
+           Directorio del comité organizador. Los campos "Responsable" de
+           Tareas, Compras y Minuto a Minuto se eligen de esta lista.
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-staff" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Staff del Evento</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              El comité organizador. Se usa para asignar responsables en Tareas, Compras y Minuto a Minuto.
+            </p>
+          </div>
+          <button class="btn-primary" onclick="openModalResponsable()">+ Agregar Responsable</button>
+        </div>
+        <div class="filter-bar" style="margin-bottom:var(--space-4);">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="search" id="staff-search" placeholder="Buscar por nombre, teléfono o correo..." oninput="setStaffSearch(this.value)" aria-label="Buscar en el staff">
+          </div>
+          <select id="staff-role-filter" class="filter-select" onchange="setStaffRoleFilter(this.value)" aria-label="Filtrar staff por etiqueta">
+            <option value="all">Todas las etiquetas</option>
+          </select>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:var(--space-5);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="margin-bottom:0;">🏷️ Roles</h3>
+            <button class="btn-secondary btn-sm" onclick="openModalRol()">+ Agregar Rol</button>
+          </div>
+          <div id="roles-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+
+        <div id="responsables-grid" class="cards-grid"></div>
+      </section>
+      <!-- / #SECCIÓN STAFF -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: TAREAS PREVIO / POST
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-tareas" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Tareas del evento</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Lo que hay que hacer antes y después del evento. Lo que ocurre durante el evento va en Minuto a Minuto.</p>
+          </div>
+          <div class="control-group-inline">
+            <button class="filter-chip" id="tareas-tab-previo" onclick="setTareasFase('previo')">Previo</button>
+            <button class="filter-chip" id="tareas-tab-post" onclick="setTareasFase('post')">Post</button>
+            <button class="btn-secondary" onclick="switchTab('minuto-a-minuto')">🕒 Durante</button>
+            <button class="btn-primary" onclick="addTarea()">+ Agregar tarea</button>
+          </div>
+        </div>
+        <div id="tareas-progreso" style="margin-bottom:14px;"></div>
+        <div class="payments-table-wrap">
+          <table class="payments-table minute-table" style="min-width:1000px;">
+            <thead>
+              <tr><th style="width:1%;"></th><th>#</th><th>Actividad</th><th>Descripción</th><th>Rol y responsable</th><th>Fecha de entrega</th><th id="tareas-avance-th">Avances</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="tareas-list"></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- / #SECCIÓN TAREAS -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: LISTA DE COMPRAS
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-compras" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Lista de compras</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Artículos por comprar, con responsable y costo. Puedes enviarlos al presupuesto de Costos del Evento.</p>
+          </div>
+          <div class="control-group-inline">
+            <button class="btn-secondary" onclick="enviarComprasAPresupuesto()">💰 Enviar compras con costo a Costos del Evento</button>
+            <button class="btn-primary" onclick="addCompra()">+ Agregar artículo</button>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card accent-teal"><div class="stat-icon">🛒</div><div class="stat-value" id="compras-stat-total">$0</div><div class="stat-label">Total de la lista</div></div>
+          <div class="stat-card accent-green"><div class="stat-icon">✅</div><div class="stat-value" id="compras-stat-comprado">$0</div><div class="stat-label">Ya comprado</div></div>
+          <div class="stat-card accent-gold"><div class="stat-icon">⏳</div><div class="stat-value" id="compras-stat-pendiente">$0</div><div class="stat-label">Por comprar</div></div>
+        </div>
+        <div class="payments-table-wrap">
+          <table class="payments-table minute-table" style="min-width:1320px;">
+            <thead>
+              <tr><th style="width:1%;"></th><th>Número</th><th>Artículo</th><th>Descripción</th><th>Rol y responsable</th><th>Fecha de entrega</th><th>Cantidad</th><th>Costo unitario</th><th>¿IVA incluido?</th><th>Costo total</th><th>Presupuesto de costos</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="compras-list"></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- / #SECCIÓN COMPRAS -->
+
+
+      <section id="sec-minuto-a-minuto" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Minuto a Minuto</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Fase «Durante»: organiza las actividades del evento por horario, lugar y responsable, y descarga el programa.
+            </p>
+          </div>
+          <div class="control-group-inline">
+            <button class="btn-secondary" onclick="exportarMinutoAMinutoCSV()">📊 Excel</button>
+            <button class="btn-primary" onclick="exportarMinutoAMinutoPDF()">📄 PDF</button>
+            <button class="btn-primary" onclick="addMinuteRow()">+ Agregar actividad</button>
+          </div>
+        </div>
+        <div id="minuto-dias-tabs" class="filter-bar" hidden></div>
+        <div class="payments-table-wrap">
+          <table class="payments-table minute-table" style="min-width:1250px;">
+            <thead>
+              <tr><th id="minuto-dia-th" hidden>Día</th><th>Hora inicio</th><th>Hora fin</th><th>Duración</th><th>Actividad</th><th>Lugar</th><th>Rol y responsable</th><th>Notas / descripción</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="minute-by-minute-list"></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- / #SECCIÓN MINUTO A MINUTO -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: DÍA DEL EVENTO (Sprint 4)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-dia-evento" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">🎪 Día del Evento</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Panel en tiempo real de asistencia y pagos.</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-secondary btn-sm" onclick="renderPanelDiaEvento()">🔄 Actualizar</button>
+            <button class="btn-primary btn-sm" onclick="enterPresentationMode()">🗺️ Mapeo del evento</button>
+          </div>
+        </div>
+        <!-- Pestañas por día (solo eventos de varios días) -->
+        <div id="dia-evento-tabs" class="filter-bar" hidden></div>
+        <!-- Stats rápidos -->
+        <div class="stats-row" style="margin-bottom:var(--space-4);">
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🪑</div>
+            <div class="stat-value" id="dia-stat-total">0</div>
+            <div class="stat-label">Total Mesas</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="dia-stat-asistio">0</div>
+            <div class="stat-label">Asistieron</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="dia-stat-pendiente">0</div>
+            <div class="stat-label">Pendientes</div>
+          </div>
+          <div class="stat-card accent-red">
+            <div class="stat-icon">❌</div>
+            <div class="stat-value" id="dia-stat-no-asistio">0</div>
+            <div class="stat-label">No asistieron</div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value" id="dia-stat-pct">0%</div>
+            <div class="stat-label">Asistencia</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="dia-stat-pagados">0/0</div>
+            <div class="stat-label">Pagados</div>
+          </div>
+        </div>
+        <!-- Barra de progreso -->
+        <div style="background:var(--color-border);border-radius:999px;height:12px;margin-bottom:var(--space-5);overflow:hidden;">
+          <div id="dia-progress-bar" style="height:100%;width:0%;border-radius:999px;transition:width .5s;background:var(--color-accent);"></div>
+        </div>
+        <!-- Lista de pendientes -->
+        <div class="chart-card">
+          <h3>⏳ Expositores Pendientes de Confirmar</h3>
+          <div id="dia-pendientes-list" style="margin-top:12px;"></div>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: COMPARAR BAZARES (Sprint 5)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-comparar" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">📊 Comparar Bazares</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Compara el bazar activo con otro.</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label class="form-label" style="margin:0;">Comparar con:</label>
+            <select id="compara-select-bazar" class="filter-select" onchange="renderComparaBazares()"></select>
+          </div>
+        </div>
+        <div id="compara-bazares-content"></div>
+      </section>
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: ALERTAS DE PAGO (Sprint 1)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-alertas" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">⚠️ Alertas</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Pagos, tareas y artículos de compra con fecha próxima (≤3 días) o ya vencida.
+            </p>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card accent-red">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="alertas-count-pago">0</div>
+            <div class="stat-label">Pagos vencidos / próximos</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="alertas-count-tarea">0</div>
+            <div class="stat-label">Tareas vencidas / próximas</div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🛒</div>
+            <div class="stat-value" id="alertas-count-compra">0</div>
+            <div class="stat-label">Compras vencidas / próximas</div>
+          </div>
+        </div>
+        <div id="alertas-list"></div>
+      </section>
+      <!-- / #SECCIÓN ALERTAS -->
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: MÉTRICAS Y GRÁFICAS
+           [EDITABLE: agrega más canvas + regístralos en updateCharts()]
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-estadisticas" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Métricas del evento</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Todo el panorama del bazar en un solo lugar: dinero, pagos, asistencia y confirmación.
+            </p>
+          </div>
+        </div>
+
+        <!-- Todas las métricas del evento juntas, para no tener que saltar
+             entre Finanzas, Costos, Día del Evento e Invitados. -->
+        <div class="stats-row">
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">📥</div>
+            <div class="stat-value" id="metrica-ingresos">$0</div>
+            <div class="stat-label">Ingresos</div>
+          </div>
+          <div class="stat-card accent-red">
+            <div class="stat-icon">📤</div>
+            <div class="stat-value" id="metrica-egresos">$0</div>
+            <div class="stat-label">Egresos (Costos)</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-icon">💎</div>
+            <div class="stat-value" id="metrica-balance">$0</div>
+            <div class="stat-label">Balance</div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-value" id="stat-ticket-promedio">$0</div>
+            <div class="stat-label">Ticket Promedio</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value" id="metrica-pagado-pct">0%</div>
+            <div class="stat-label">Expositores al corriente</div>
+          </div>
+          <div class="stat-card accent-teal">
+            <div class="stat-icon">🎪</div>
+            <div class="stat-value" id="metrica-asistencia-pct">0%</div>
+            <div class="stat-label">Asistencia (mesas)</div>
+          </div>
+          <div class="stat-card accent-gold">
+            <div class="stat-icon">🎟️</div>
+            <div class="stat-value" id="metrica-confirmacion-pct">0%</div>
+            <div class="stat-label">Confirmación de invitados</div>
+          </div>
+        </div>
+
+        <!-- Sprint 1: Resumen por categoría (antes vivía en Control de Pagos) -->
+        <div class="payments-table-wrap" style="margin-bottom:var(--space-5);">
+          <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);">
+            <strong style="font-family:var(--font-display);font-size:var(--fs-md);">Ingresos por Categoría</strong>
+          </div>
+          <div id="resumen-categorias" style="padding:var(--space-2);overflow-x:auto;"></div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Distribución por Categorías</h3>
+            <div class="chart-wrap"><canvas id="chart-categorias"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Balance Global de Pagos</h3>
+            <div class="chart-wrap"><canvas id="chart-pagos"></canvas></div>
+          </div>
+          <!-- [NUEVO] Porcentaje de asistentes -->
+          <div class="chart-card">
+            <h3 id="chart-asistencia-title">Porcentaje de Asistencia</h3>
+            <div class="chart-wrap"><canvas id="chart-asistencia"></canvas></div>
+          </div>
+          <!-- [NUEVO] Porcentaje de confirmación -->
+          <div class="chart-card">
+            <h3 id="chart-confirmacion-title">Confirmación de Invitados</h3>
+            <div class="chart-wrap"><canvas id="chart-confirmacion"></canvas></div>
+          </div>
+        </div>
+      </section>
+      <!-- / #SECCIÓN MÉTRICAS -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: MIS BAZARES
+           Tabla de gestión de bazares. Borrar solo disponible aquí.
+           [EDITABLE: agrega columnas en renderBazaresTabla() de Core.js]
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-bazares" class="page-section">
+
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">Mis Bazares</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Solo desde esta sección puedes eliminar un bazar. Haz clic en "Abrir" para entrar al panel de un bazar.
+            </p>
+          </div>
+          <div class="bazaar-header-actions">
+            <button class="btn-primary" onclick="createBazaar()">+ Nuevo Bazar</button>
+            <button class="btn-secondary" onclick="duplicarBazaar()" title="Duplicar bazar activo">📋 Duplicar Bazar Activo</button>
+          </div>
+        </div>
+
+        <div class="payments-table-wrap">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Bazar (Logo + Nombre)</th>
+                <th>Expositores</th>
+                <th>Pagos</th>
+                <th>Invitados</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <!-- Filas inyectadas por Core.js → renderBazaresTabla() -->
+            <tbody id="bazares-table-body"></tbody>
+          </table>
+        </div>
+
+      </section>
+      <!-- / #SECCIÓN MIS BAZARES -->
+
+
+    </div>
+    <!-- / #PAGE-CONTENT -->
+
+    <!-- # FOOTER -->
+    <footer class="footer">
+      BAZARIX &copy; 2026 — Plataforma Modular de Control de Bazares y Eventos.
+    </footer>
+
+  </main>
+  <!-- / #MAIN-AREA -->
+
+</div>
+<!-- / .app-layout -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     # FAB — Botón flotante de acción rápida
+═══════════════════════════════════════════════════════════════════ -->
+<div class="fab-social-container">
+  <div id="fab-social-menu" class="fab-add-menu" aria-hidden="true">
+    <a class="fab-add-item" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer">📸 Instagram</a>
+    <a class="fab-add-item" href="https://docs.google.com/forms/" target="_blank" rel="noopener noreferrer">📝 Google Forms</a>
+  </div>
+  <button class="fab fab-social" onclick="toggleSocialFabMenu()" title="Redes y formularios" aria-label="Abrir Instagram y Google Forms">🔗</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     # MODALES — Todas las ventanas emergentes
+     Se abren/cierran con openModal(id) / closeModal(id) en Core.js
+═══════════════════════════════════════════════════════════════════ -->
+
+<!-- # MODAL: NUEVO / EDITAR EXPOSITOR
+     Nuevos campos: Adelanto (exp-adelanto) + Fecha Límite (exp-fecha-limite)
+     [EDITABLE: agrega campos al form y a saveExpositorHandler() en Core.js]
+-->
+<div id="modal-expositor" class="modal-overlay">
+  <div class="modal-box modal-box-wide expositor-wizard-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-exp-title">Nuevo Expositor</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-expositor')">✕</button>
+    </div>
+    <form id="form-expositor" novalidate onsubmit="saveExpositorHandler(event, syncExpositorFormData())">
+      <input type="hidden" id="exp-id">
+      <div class="modal-body">
+        <div class="form-group" id="exp-photo-group">
+          <label class="form-label" for="exp-foto-file">Foto de Perfil / Logotipo</label>
+          <div class="avatar-upload-area"
+               role="button" tabindex="0" aria-label="Seleccionar foto de perfil o logotipo"
+               onclick="document.getElementById('exp-foto-file').click()"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('exp-foto-file').click();}">
+            <div class="avatar-preview-lg" id="avatar-preview-box">📷</div>
+            <div class="avatar-upload-hint">Clic aquí para seleccionar imagen</div>
+            <input type="file" id="exp-foto-file" accept="image/*"
+                   style="display:none" onchange="handleFotoUpload(event)">
+          </div>
+          <input type="hidden" id="exp-foto-base64">
+        </div>
+
+        <ol class="exp-wizard-steps" aria-label="Progreso del registro">
+          <li class="exp-wizard-step is-current" data-wizard-indicator="1" aria-current="step">
+            <span>1</span><small>Identidad</small>
+          </li>
+          <li class="exp-wizard-step" data-wizard-indicator="2">
+            <span>2</span><small>Logística</small>
+          </li>
+          <li class="exp-wizard-step" data-wizard-indicator="3">
+            <span>3</span><small>Costos y pagos</small>
+          </li>
+          <li class="exp-wizard-step" data-wizard-indicator="4">
+            <span>4</span><small>Resumen</small>
+          </li>
+        </ol>
+
+        <section class="exp-wizard-panel" data-wizard-step="1" aria-labelledby="exp-step-title-1">
+          <h3 class="exp-wizard-title" id="exp-step-title-1" tabindex="-1">Identidad y contacto</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-nombre">Nombre Completo *</label>
+              <input type="text" id="exp-nombre" class="form-input" required placeholder="Ej. Ana García">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-negocio">Nombre del Negocio / Marca *</label>
+              <input type="text" id="exp-negocio" class="form-input" required placeholder="Ej. Joyería Artesanal">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-categoria">Categoría</label>
+              <select id="exp-categoria" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">¿Tiene características?</label>
+              <div class="form-switch">
+                <span class="switch-label">Etiquetas extra del negocio</span>
+                <label class="switch" aria-label="¿Tiene características?">
+                  <input type="checkbox" id="exp-tiene-caracteristicas" onchange="updateExpositorCaracteristicas()">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group" id="exp-caracteristicas-group" hidden>
+            <label class="form-label">Características del negocio</label>
+            <div id="exp-caracteristicas-picker" class="caract-picker"></div>
+            <p class="form-hint" id="exp-caracteristicas-hint" aria-live="polite"></p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-tel">Teléfono</label>
+              <input type="tel" id="exp-tel" class="form-input" placeholder="Ej. 55-1234-5678">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-email">Correo Electrónico</label>
+              <input type="email" id="exp-email" class="form-input" placeholder="correo@ejemplo.com">
+            </div>
+          </div>
+        </section>
+
+        <section class="exp-wizard-panel" data-wizard-step="2" aria-labelledby="exp-step-title-2" hidden>
+          <h3 class="exp-wizard-title" id="exp-step-title-2" tabindex="-1">Detalles logísticos</h3>
+
+          <!-- Espacio: se acomoda solo (si es media mesa, desaparece «Mesas solicitadas» y las demás ocupan su lugar) -->
+          <div class="exp-fields-3">
+            <div class="form-group">
+              <label class="form-label" for="exp-mesa-tipo">Tipo de espacio</label>
+              <select id="exp-mesa-tipo" class="form-select" onchange="updateExpositorMesaTipo(true)">
+                <option value="completa">Mesa(s) completa(s)</option>
+                <option value="media">Media mesa</option>
+              </select>
+            </div>
+            <div class="form-group" id="exp-mesas-group">
+              <label class="form-label" for="exp-mesas-cantidad">Mesas solicitadas *</label>
+              <select id="exp-mesas-cantidad" class="form-select" required onchange="toggleOtherTableCount();applySuggestedBaseCost(true)">
+                <option value="1">1 mesa</option>
+                <option value="2">2 mesas</option>
+                <option value="3">3 mesas</option>
+                <option value="4">4 mesas</option>
+                <option value="5">5 mesas</option>
+                <option value="otro">Otro</option>
+              </select>
+              <input type="number" id="exp-mesas-otro" class="form-input" min="1" step="1" oninput="updateExpositorTableSelection();applySuggestedBaseCost(true)"
+                     placeholder="Cantidad de mesas" style="display:none;margin-top:8px;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-sillas-por-mesa">Sillas por mesa</label>
+              <input type="number" id="exp-sillas-por-mesa" class="form-input" min="0" step="1" value="2" oninput="updateExpositorChairPreview()">
+            </div>
+          </div>
+          <p class="form-hint exp-compact-hint">La media mesa se comparte con otro expositor (máximo 2 por mesa) y usa el precio global de media mesa. Las sillas por mesa se ajustan sin cambiar el costo.</p>
+
+          <!-- Color en el plano: interruptor + paleta en una sola línea -->
+          <div class="form-group exp-color-row">
+            <label class="form-label">Color en el plano</label>
+            <div class="exp-color-line">
+              <label class="switch" aria-label="Usar un color propio en el plano">
+                <input type="checkbox" id="exp-color-enabled" onchange="updateExpositorColorFields()">
+                <span class="slider"></span>
+              </label>
+              <span class="exp-color-note">Usar color propio <small>(si no, se usa el de su categoría)</small></span>
+              <div id="exp-color-swatches" class="exp-color-swatches" hidden></div>
+              <input type="color" id="exp-color" class="exp-color-input" value="#8b5cf6" title="Otro color" aria-label="Otro color en el plano" oninput="renderExpositorColorSwatches()" hidden>
+            </div>
+          </div>
+
+          <div class="form-group" id="exp-dias-group" hidden>
+            <label class="form-label">Días de participación</label>
+            <div class="form-switch">
+              <span class="switch-label">Participa todos los días del evento</span>
+              <label class="switch" aria-label="Participa todos los días del evento">
+                <input type="checkbox" id="exp-todos-dias" checked onchange="updateExpositorDias(true)">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div id="exp-dias-picker" class="caract-picker" style="margin-top:var(--space-2);" hidden></div>
+            <p class="form-hint" id="exp-dias-hint" aria-live="polite"></p>
+          </div>
+
+          <!-- Staff: tres campos en una fila -->
+          <div class="exp-fields-3">
+            <div class="form-group">
+              <label class="form-label" for="exp-area-encargada">Área encargada (Staff)</label>
+              <select id="exp-area-encargada" class="form-select" onchange="updateExpositorAreaStaff()">
+                <option value="">Selecciona un área de Staff</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-encargado">Persona encargada</label>
+              <select id="exp-encargado" class="form-select" disabled>
+                <option value="">Primero elige un área</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sillas asignadas</label>
+              <div id="exp-sillas-total" class="form-input" aria-live="polite" aria-readonly="true">2</div>
+            </div>
+          </div>
+
+          <!-- Mesas del plano: a todo lo ancho (caben más por fila y casi no sobra espacio) -->
+          <div class="form-group">
+            <div class="exp-picker-head">
+              <label class="form-label">Mesas asignadas en el plano (opcional)</label>
+              <label class="check-inline"><input type="checkbox" id="exp-ocultar-ocupadas" checked onchange="refreshExpositorTablePicker()"> Ocultar mesas ocupadas</label>
+            </div>
+            <div id="exp-ubicacion" class="form-input exp-table-picker">
+              <span class="form-hint">Selecciona las mesas que pidió este expositor.</span>
+            </div>
+            <p class="form-hint" id="exp-table-assignment-hint" aria-live="polite">Por asignar.</p>
+          </div>
+        </section>
+
+        <section class="exp-wizard-panel" data-wizard-step="3" aria-labelledby="exp-step-title-3" hidden>
+          <h3 class="exp-wizard-title" id="exp-step-title-3" tabindex="-1">Costos y pagos</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-costo-base">Costo base de mesas (MXN) *</label>
+              <input type="number" id="exp-costo-base" class="form-input" required min="0" step="0.01" placeholder="450"
+                     oninput="updateExpositorCostPreview();applySuggestedBaseCost(false)">
+              <p class="form-hint">El costo final suma automáticamente las sillas extra.</p>
+              <p class="form-hint" id="exp-costo-base-hint" aria-live="polite"></p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estatus del Pago</label>
+              <div class="form-switch">
+                <span class="switch-label">¿Ha pagado la reserva completa?</span>
+                <label class="switch" aria-label="¿Ha pagado la reserva completa?">
+                  <input type="checkbox" id="exp-pagado" onchange="updateExpositorPaymentFields()">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">¿Requiere sillas extra?</label>
+            <div class="form-switch">
+              <span class="switch-label">Agregar sillas adicionales a las incluidas por mesa</span>
+              <label class="switch" aria-label="¿Requiere sillas extra?">
+                <input type="checkbox" id="exp-sillas-extra-enabled" onchange="updateExpositorExtraChairFields()">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row exp-conditional is-collapsed" id="exp-sillas-extra-details" hidden inert>
+            <div class="form-group">
+              <label class="form-label" for="exp-sillas-extra-cantidad">Cantidad de sillas extra</label>
+              <input type="number" id="exp-sillas-extra-cantidad" class="form-input" min="1" step="1"
+                     oninput="updateExpositorCostPreview()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-costo-silla-extra">Precio global por silla extra (MXN)</label>
+              <input type="number" id="exp-costo-silla-extra" class="form-input" min="0" step="0.01" readonly
+                     aria-describedby="exp-chair-price-hint">
+              <p class="form-hint" id="exp-chair-price-hint">El precio se configura en Costos del Evento → Mobiliario y se comparte con todos los expositores.</p>
+            </div>
+          </div>
+          <p class="form-hint">La cantidad y el costo de sillas extra son opcionales. Si falta alguno, no se sumarán sillas extra al costo.</p>
+          <div class="form-group">
+            <label class="form-label" for="exp-costo">Costo final del expositor (MXN)</label>
+            <input type="number" id="exp-costo" class="form-input" readonly aria-readonly="true">
+            <p class="form-hint" id="exp-sillas-extra-total" aria-live="polite">Sin cargo de sillas extra.</p>
+          </div>
+          <div class="form-row exp-payment-details exp-conditional is-collapsed" id="exp-payment-details" hidden inert>
+            <div class="form-group">
+              <label class="form-label" for="exp-adelanto">Adelanto Entregado (MXN)</label>
+              <input type="number" id="exp-adelanto" class="form-input" min="0" step="0.01" value="0"
+                     placeholder="0" oninput="updateExpositorPaymentPreview()">
+              <p class="form-hint">Monto parcial ya recibido.</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="exp-fecha-limite">Fecha Límite de Pago</label>
+              <input type="date" id="exp-fecha-limite" class="form-input">
+              <p class="form-hint">Opcional. Aparece en la tarjeta y en el comprobante PDF.</p>
+            </div>
+          </div>
+          <div id="exp-payment-balance" class="exp-payment-balance exp-conditional is-collapsed" aria-live="polite" hidden inert></div>
+          <div id="exp-payment-paid-badge" class="exp-payment-paid-badge exp-conditional is-collapsed" role="status" hidden inert>
+            ✓ Pago liquidado en su totalidad ($0.00 pendiente)
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="exp-descuento">Descuento Aplicado (MXN)</label>
+              <input type="number" id="exp-descuento" class="form-input" min="0" step="0.01" value="0"
+                     oninput="updateExpositorPaymentFields()">
+              <p class="form-hint">Se descuenta del costo antes de calcular el saldo.</p>
+            </div>
+            <div class="form-group exp-conditional is-collapsed" id="exp-credit-note-wrap" hidden inert>
+              <label class="form-label" for="exp-notas-credito">Nota de Crédito / Motivo</label>
+              <input type="text" id="exp-notas-credito" class="form-input" placeholder="Ej. Descuento por pronto pago">
+            </div>
+          </div>
+        </section>
+
+        <section class="exp-wizard-panel" data-wizard-step="4" aria-labelledby="exp-step-title-4" hidden>
+          <h3 class="exp-wizard-title" id="exp-step-title-4" tabindex="-1">Resumen y notas</h3>
+          <div id="exp-wizard-summary" class="exp-wizard-summary" aria-live="polite"></div>
+          <div class="form-group">
+            <label class="form-label" for="exp-notas">Notas Adicionales</label>
+            <textarea id="exp-notas" class="form-textarea exp-notes-textarea" rows="7"
+                      placeholder="Detalles de productos, redes sociales, electricidad y otras necesidades..."></textarea>
+          </div>
+          <div id="expositor-custom-metrics" class="custom-metrics-fields"></div>
+        </section>
+      </div>
+      <div class="modal-footer exp-wizard-footer">
+        <button type="button" class="btn-secondary" id="exp-wizard-cancel" onclick="closeModal('modal-expositor')">Cancelar</button>
+        <button type="button" class="btn-secondary" id="exp-wizard-previous" onclick="previousExpositorStep()" hidden>Anterior</button>
+        <button type="button" class="btn-primary" id="exp-wizard-next" onclick="nextExpositorStep()">Siguiente: Detalles Logísticos</button>
+        <button type="submit" class="btn-primary" id="exp-wizard-submit" hidden>Guardar Registro</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL EXPOSITOR -->
+
+
+<!-- # MODAL: NUEVA / EDITAR CATEGORÍA O CARACTERÍSTICA (el tipo lo define #cat-tipo) -->
+<div id="modal-categoria" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-cat-title">Nueva categoría</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-categoria')">✕</button>
+    </div>
+    <form id="form-categoria" onsubmit="saveCategoriaHandler(event)">
+      <input type="hidden" id="cat-id">
+      <input type="hidden" id="cat-tipo" value="categoria">
+      <div class="modal-body">
+        <div class="category-type-hint" id="cat-type-hint" aria-live="polite"></div>
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 150px;">
+            <label class="form-label" for="cat-emoji">Emoji *</label>
+            <div class="emoji-input-wrap">
+              <input type="text" id="cat-emoji" class="form-input" required maxlength="4"
+                     placeholder="🎨" style="text-align:center;font-size:1.3rem;">
+              <button class="btn-icon emoji-field-button" type="button" data-emoji-target="cat-emoji"
+                      aria-label="Elegir emoji para la categoría" title="Elegir emoji"
+                      aria-haspopup="dialog" aria-expanded="false" aria-controls="emoji-picker">😊</button>
+            </div>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" for="cat-nombre">Nombre *</label>
+            <input type="text" id="cat-nombre" class="form-input" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cat-color">Color distintivo *</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input type="color" id="cat-color" class="form-input"
+                   style="width:60px;height:42px;padding:2px;cursor:pointer;" value="#0d9488">
+            <span style="font-size:var(--fs-xs);color:var(--color-text-muted);">Identificador en plano, gráficas y etiquetas</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cat-descripcion">Descripción (opcional)</label>
+          <textarea id="cat-descripcion" class="form-textarea" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-categoria')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL CATEGORÍA -->
+
+<!-- # MODAL: DUPLICAR PLANO -->
+<div id="modal-duplicar-plano" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Duplicar plano</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-duplicar-plano')">✕</button>
+    </div>
+    <form id="form-duplicar-plano" onsubmit="saveDuplicarPlano(event)">
+      <div class="modal-body">
+        <p class="form-hint" id="dup-plano-origen" style="margin:0 0 12px;"></p>
+        <div class="form-group"><label class="form-label" for="dup-plano-nombre">Nombre del nuevo plano *</label><input type="text" id="dup-plano-nombre" class="form-input" required></div>
+        <div class="form-group" id="dup-plano-dia-group" hidden><label class="form-label" for="dup-plano-dia">Día del nuevo plano</label><select id="dup-plano-dia" class="form-select"></select></div>
+        <div class="form-switch" style="margin-bottom:var(--space-3);">
+          <span class="switch-label">Copiar también los expositores asignados<small class="form-hint" style="display:block;font-weight:500;">Solo los que participan ese día y sin pasar de sus mesas solicitadas.</small></span>
+          <label class="switch" aria-label="Copiar expositores asignados"><input type="checkbox" id="dup-plano-expositores" checked><span class="slider"></span></label>
+        </div>
+        <div class="form-switch">
+          <span class="switch-label">Copiar la imagen de fondo<small class="form-hint" style="display:block;font-weight:500;">Si el almacenamiento está justo, desactívalo.</small></span>
+          <label class="switch" aria-label="Copiar la imagen de fondo"><input type="checkbox" id="dup-plano-fondo" checked><span class="slider"></span></label>
+        </div>
+        <p class="form-hint">El plano nuevo es independiente: lo que cambies en uno no afecta al otro. La asistencia empieza en blanco.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-duplicar-plano')">Cancelar</button>
+        <button type="submit" class="btn-primary">Duplicar plano</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- # MODAL: COLOR DEL BAZAR -->
+<div id="modal-color-bazar" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Color del bazar — <span id="modal-color-bazaar-name"></span></h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-color-bazar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bazar-color-id">
+      <div id="bazar-color-palette" class="color-palette"></div>
+      <div class="form-group" style="margin-top:var(--space-4);">
+        <label class="form-label" for="bazar-color-input">O elige cualquier color</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input type="color" id="bazar-color-input" class="form-input" style="width:60px;height:42px;padding:2px;cursor:pointer;" value="#0d9488"
+                 oninput="pickBazaarColor(this.value)">
+          <span class="form-hint" id="bazar-color-hint" style="margin:0;"></span>
+        </div>
+      </div>
+      <div id="bazar-color-preview" class="bz-color-preview">Así se verá la marca del bazar</div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="clearBazaarColor()">Quitar color</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-color-bazar')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveBazaarColor()">Guardar color</button>
+    </div>
+  </div>
+</div>
+
+<!-- # MODAL: TODAS LAS CARACTERÍSTICAS DE UN EXPOSITOR -->
+<div id="modal-caracteristicas" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-caracteristicas-title">Características</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-caracteristicas')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-caracteristicas-list" class="subcategory-popup-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-caracteristicas')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- # MODAL: EDITAR PROPIEDADES DE MESA (canvas)
+     [NUEVO] Botón de eliminar mesa incluido aquí.
+-->
+<div id="modal-editar-mesa" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Editar Mesa del Plano</h2>
+      <button class="modal-close" onclick="closeModal('modal-editar-mesa')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-table-id">
+      <div class="form-group">
+        <label class="form-label">Nombre / Etiqueta de la Mesa</label>
+        <input type="text" id="edit-table-name" class="form-input" placeholder="Ej. Mesa A-01">
+      </div>
+      <div class="form-group">
+        <div class="form-switch">
+          <span class="switch-label">Compartir mesa (2 medias mesas)<small class="form-hint" style="display:block;font-weight:500;">Máximo 2 expositores por mesa, cada uno con su color en el plano.</small></span>
+          <label class="switch" aria-label="Compartir mesa"><input type="checkbox" id="edit-table-shared" onchange="updateTableSharedFields()"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="edit-table-exhibitor-label">Expositor asignado</label>
+        <div class="table-owner-row">
+          <button type="button" id="edit-table-exhibitor-picker" class="table-owner-picker" aria-labelledby="edit-table-exhibitor-label" aria-haspopup="dialog" aria-expanded="false" onclick="openTableOwnerPicker(1)">
+            <span class="table-owner-picker-value">-- Sin asignar --</span>
+            <svg class="table-owner-picker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          </button>
+          <select id="edit-table-exhibitor" class="table-owner-native-select" hidden tabindex="-1" aria-hidden="true"><option value="">-- Sin asignar --</option></select>
+        </div>
+      </div>
+      <div class="form-group" id="edit-table-owner2-group" hidden>
+        <label class="form-label" id="edit-table-exhibitor2-label">Expositor de la segunda media mesa</label>
+        <div class="table-owner-row">
+          <button type="button" id="edit-table-exhibitor2-picker" class="table-owner-picker" aria-labelledby="edit-table-exhibitor2-label" aria-haspopup="dialog" aria-expanded="false" onclick="openTableOwnerPicker(2)">
+            <span class="table-owner-picker-value">-- Sin asignar --</span>
+            <svg class="table-owner-picker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          </button>
+          <select id="edit-table-exhibitor2" class="table-owner-native-select" hidden tabindex="-1" aria-hidden="true"><option value="">-- Sin asignar --</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ancho (cm)</label>
+          <input type="number" id="edit-table-width-cm" class="form-input" min="1" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Largo (cm)</label>
+          <input type="number" id="edit-table-height-cm" class="form-input" min="1" step="1">
+        </div>
+      </div>
+      <div class="table-style-row">
+        <div class="form-group">
+          <label class="form-label" for="edit-table-color">Color de la mesa</label>
+          <input type="color" id="edit-table-color" class="table-color-input" value="#ffffff">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-table-label-color">Color del texto</label>
+          <input type="color" id="edit-table-label-color" class="table-color-input" value="#1e293b">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-table-label-size">Tamaño de letra (px)</label>
+          <input type="number" id="edit-table-label-size" class="form-input" min="8" max="32" step="1" value="11">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rotación (grados)</label>
+        <div class="rotation-controls">
+          <button type="button" class="rotation-button" onclick="rotateEditingTable(-90)"
+                  title="Girar 90 grados a la izquierda" aria-label="Girar 90 grados a la izquierda">↶</button>
+          <input type="number" id="edit-table-rotation" class="form-input" min="0" max="359" step="1">
+          <button type="button" class="rotation-button" onclick="rotateEditingTable(90)"
+                  title="Girar 90 grados a la derecha" aria-label="Girar 90 grados a la derecha">↷</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <!-- [NUEVO] Botón eliminar mesa desde el modal -->
+      <button type="button" class="btn-danger"
+              onclick="deleteTable(document.getElementById('edit-table-id').value);">
+        🗑️ Eliminar Mesa
+      </button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-editar-mesa')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveTableEdit()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL EDITAR MESA -->
+
+<div id="modal-table-owner-picker" class="modal-overlay table-owner-picker-overlay" role="presentation">
+  <section class="table-owner-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="table-owner-picker-title">
+    <header class="table-owner-picker-header">
+      <div>
+        <h2 id="table-owner-picker-title">Seleccionar expositor</h2>
+        <p>Busca por nombre de tienda o persona</p>
+      </div>
+      <button type="button" class="modal-close" aria-label="Cerrar selector" onclick="closeTableOwnerPicker()">✕</button>
+    </header>
+    <div class="table-owner-picker-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input type="search" id="table-owner-picker-search" class="form-input" placeholder="Buscar expositor..." autocomplete="off" aria-label="Buscar expositor">
+    </div>
+    <div id="table-owner-picker-list" class="table-owner-picker-list" role="listbox" aria-label="Expositores disponibles"></div>
+  </section>
+</div>
+
+
+<!-- # MODAL: NUEVO ELEMENTO DEL PLANO -->
+<div id="modal-nuevo-elemento" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Agregar Elemento al Plano</h2>
+      <button class="modal-close" onclick="closeModal('modal-nuevo-elemento')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tipo de elemento</label>
+        <select id="new-element-type" class="form-select" onchange="updateNewElementEmoji()">
+          <option value="electricidad">⚡ Zona eléctrica</option>
+          <option value="pilar">▣ Pilar</option>
+          <option value="entrada">↗ Entrada</option>
+          <option value="otro">• Otro / personalizado</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre del elemento</label>
+          <input type="text" id="new-element-label" class="form-input" placeholder="Ej. Extintor, columna, área VIP">
+          <p id="new-element-custom-hint" class="form-hint">Escribe el nombre que aparecerá en el plano.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emoji</label>
+          <div class="emoji-input-wrap">
+            <input type="text" id="new-element-emoji" class="form-input" maxlength="4" placeholder="⚡">
+            <button class="btn-icon emoji-field-button" type="button" data-emoji-target="new-element-emoji"
+                    aria-label="Elegir emoji para el elemento" title="Elegir emoji"
+                    aria-haspopup="dialog" aria-expanded="false" aria-controls="emoji-picker">😊</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ancho (px)</label>
+          <input type="number" id="new-element-width" class="form-input" min="5" value="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alto (px)</label>
+          <input type="number" id="new-element-height" class="form-input" min="5" value="30">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-nuevo-elemento')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveNewMapElement()">Agregar al Plano</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL NUEVO ELEMENTO -->
+
+
+<!-- # MODAL: EDITAR ELEMENTO DEL PLANO -->
+<div id="modal-editar-elemento" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Editar Elemento del Plano</h2>
+      <button class="modal-close" onclick="closeModal('modal-editar-elemento')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-element-id">
+      <div class="form-group">
+        <label class="form-label">Tipo de elemento</label>
+        <select id="edit-element-type" class="form-select">
+          <option value="electricidad">⚡ Zona eléctrica</option>
+          <option value="pilar">▣ Pilar</option>
+          <option value="entrada">↗ Entrada</option>
+          <option value="otro">• Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Etiqueta</label>
+        <input type="text" id="edit-element-label" class="form-input" placeholder="Ej. Contacto eléctrico">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Emoji</label>
+        <div class="emoji-input-wrap">
+          <input type="text" id="edit-element-emoji" class="form-input" maxlength="4" placeholder="⚡">
+          <button class="btn-icon emoji-field-button" type="button" data-emoji-target="edit-element-emoji"
+                  aria-label="Elegir emoji para el elemento" title="Elegir emoji"
+                  aria-haspopup="dialog" aria-expanded="false" aria-controls="emoji-picker">😊</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Posición X</label>
+          <input type="number" id="edit-element-x" class="form-input" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Posición Y</label>
+          <input type="number" id="edit-element-y" class="form-input" step="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ancho (px)</label>
+          <input type="number" id="edit-element-width" class="form-input" min="5" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alto (px)</label>
+          <input type="number" id="edit-element-height" class="form-input" min="5" step="1">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-danger" onclick="deleteMapElementFromModal()">🗑️ Eliminar</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-editar-elemento')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveMapElementEdit()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL EDITAR ELEMENTO -->
+
+
+<!-- # MODAL: EDITAR ZONA DEL PLANO -->
+<div id="modal-editar-zona" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Editar Zona del Plano</h2>
+      <button class="modal-close" onclick="closeModal('modal-editar-zona')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-zone-id">
+      <div class="form-group">
+        <label class="form-label">Título de la zona</label>
+        <input type="text" id="edit-zone-label" class="form-input" placeholder="Ej. Área de comida">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color de la zona</label>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input type="color" id="edit-zone-color" class="form-input" style="width:64px;height:44px;padding:2px;cursor:pointer;">
+          <span class="form-hint">Se aplicará al relleno, borde y título.</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-danger" onclick="deleteZoneFromModal()">🗑️ Eliminar zona</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-editar-zona')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveZoneEdit()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL EDITAR ZONA -->
+
+
+<!-- # MODAL: CHECKLIST DEL EXPOSITOR
+     [NUEVO] Ítems ahora son editables (input type text en cada fila).
+-->
+<div id="modal-checklist" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-checklist-title">Checklist</h2>
+      <button class="modal-close" onclick="closeModal('modal-checklist')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="checklist-exp-id">
+      <p style="font-size:var(--fs-xs);color:var(--color-text-muted);margin-bottom:12px;"
+         id="checklist-exp-progress">0 / 0 completado</p>
+      <!-- Ítems con checkbox + campo editable + botón eliminar (Core.js → renderExpositorChecklist) -->
+      <div id="checklist-exp-container" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="form-row" style="margin-top:16px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+          <label class="form-label">Agregar pendiente</label>
+          <input type="text" id="checklist-new-item" class="form-input" placeholder="Ej. Confirmar toldo">
+        </div>
+        <button type="button" class="btn-primary" style="height:44px;"
+                onclick="addExpositorChecklistItem()">+ Agregar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-checklist')">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL CHECKLIST -->
+
+<!-- # MODAL: VER Y EDITAR NOTA -->
+<div id="modal-nota" class="modal-overlay">
+  <div class="modal-box note-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-nota-title">Nota</h2>
+      <button class="modal-close" type="button" onclick="closeModal('modal-nota')" aria-label="Cerrar">✕</button>
+    </div>
+    <form onsubmit="saveNoteHandler(event)">
+      <div class="modal-body">
+        <label class="form-label" for="note-editor-content">Información completa</label>
+        <textarea id="note-editor-content" class="form-textarea note-editor"
+          placeholder="Escribe los detalles importantes..."></textarea>
+        <p class="form-hint">Puedes agregar o editar la información aquí. Se mostrará resumida en la lista.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-nota')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar nota</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL VER Y EDITAR NOTA -->
+
+<!-- # MODAL: AGREGAR INVITADO -->
+<div id="modal-invitado" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Agregar Invitado</h2>
+      <button class="modal-close" onclick="closeModal('modal-invitado')">✕</button>
+    </div>
+    <form id="form-invitado" onsubmit="saveInvitadoHandler(event)">
+      <div class="modal-body">
+        <input type="hidden" id="inv-id">
+        <div class="form-group">
+          <label class="form-label">Nombre Completo *</label>
+          <input type="text" id="inv-nombre" class="form-input" required placeholder="Ej. Roberto Sánchez">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas / Observaciones</label>
+          <textarea id="inv-notas" class="form-textarea" placeholder="Ej. Viene con familia, VIP..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expositor relacionado</label>
+          <select id="inv-expositor" class="form-select"></select>
+          <p class="form-hint">Permite confirmar la asistencia del expositor desde esta lista.</p>
+        </div>
+        <div class="form-group">
+          <div class="form-switch">
+            <span class="switch-label">¿Ya confirmó asistencia?</span>
+            <label class="switch">
+              <input type="checkbox" id="inv-confirmado">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-invitado')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar Invitado</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL INVITADO -->
+
+
+<!-- # MODAL: LOGO / IMAGEN DEL BAZAR
+     [NUEVO] Imagen que reemplaza el emoji 🎪 en la tabla de bazares.
+-->
+<div id="modal-logo-bazar" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Logo del Bazar — <span id="logo-modal-bazaar-name"></span></h2>
+      <button class="modal-close" onclick="closeModal('modal-logo-bazar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="logo-bazar-id">
+      <input type="hidden" id="logo-base64">
+      <div class="avatar-upload-area"
+           onclick="document.getElementById('logo-file-input').click()" style="height:160px;">
+        <div class="avatar-preview-lg" id="logo-preview-box"
+             style="width:100px;height:100px;font-size:2.5rem;border-radius:12px;">🎪</div>
+        <div class="avatar-upload-hint">Clic para seleccionar imagen (JPG, PNG, WebP)</div>
+        <input type="file" id="logo-file-input" accept="image/*" style="display:none"
+               onchange="handleLogoUpload(event)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-danger" onclick="removeLogoHandler()">🗑️ Quitar Logo</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-logo-bazar')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveLogoHandler()">Guardar Logo</button>
+    </div>
+  </div>
+</div>
+<!-- / #MODAL LOGO BAZAR -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     # PLANTILLA PDF — Oculta, usada por html2pdf para generar recibos
+     [NUEVO] Incluye sección de adelanto, saldo restante y fecha límite.
+     [EDITABLE: modifica el diseño del comprobante aquí]
+═══════════════════════════════════════════════════════════════════ -->
+<div id="invoice-template"
+     style="display:none;padding:30px;font-family:Arial,sans-serif;background:#fff;color:#333;max-width:700px;">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;
+              border-bottom:3px solid #0d9488;padding-bottom:15px;margin-bottom:20px;">
+    <div>
+      <h1 style="color:#0d9488;margin:0;font-size:22px;">COMPROBANTE DE RESERVA</h1>
+      <p style="margin:5px 0 0;color:#666;font-size:13px;">BAZARIX — Gestión de Eventos</p>
+    </div>
+    <div style="text-align:right;">
+      <div id="pdf-invoice-id" style="font-weight:bold;font-size:15px;color:#0d9488;">FOLIO #0000</div>
+      <div id="pdf-invoice-date" style="font-size:12px;color:#777;">Fecha: —</div>
+    </div>
+  </div>
+
+  <!-- Datos del expositor -->
+  <div style="margin-bottom:20px;font-size:13px;line-height:2;">
+    <div id="pdf-exp-negocio"></div>
+    <div id="pdf-exp-nombre"></div>
+    <div id="pdf-exp-contact"></div>
+    <div id="pdf-exp-mesa"></div>
+  </div>
+
+  <!-- Desglose financiero -->
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:20px;">
+    <table style="width:100%;font-size:13px;border-collapse:collapse;">
+      <tr>
+        <td style="padding:6px 0;color:#64748b;"><div id="pdf-exp-costo"></div></td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#b45309;"><div id="pdf-exp-descuento"></div></td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;color:#10b981;"><div id="pdf-exp-adelanto"></div></td>
+      </tr>
+      <tr style="border-top:1px solid #e2e8f0;">
+        <td style="padding:8px 0 0;font-weight:bold;"><div id="pdf-exp-saldo"></div></td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;font-size:12px;color:#64748b;"><div id="pdf-exp-fecha-limite"></div></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Estado del pago y monto principal -->
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;text-align:right;">
+    <div id="pdf-exp-status" style="font-size:13px;margin-bottom:8px;text-align:left;"></div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Monto a liquidar / Total:</div>
+    <div id="pdf-exp-monto" style="font-size:28px;font-weight:900;color:#0d9488;"></div>
+  </div>
+
+</div>
+<!-- / #PLANTILLA PDF -->
+
+
+<!-- # TOAST — Notificaciones (gestionado por Core.js → showToast()) -->
+<div id="toast"></div>
+
+<!-- Modal exportar bazar (completo o por secciones) -->
+<div id="modal-backup-export" class="modal-overlay">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-header">
+      <h2 class="modal-title">📦 Exportar bazar</h2>
+      <button class="modal-close" onclick="closeModal('modal-backup-export')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="be-bazar">Bazar a exportar</label>
+        <select id="be-bazar" class="form-select" onchange="renderBackupExportSections()"></select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <button type="button" class="btn-secondary btn-sm" onclick="backupExportSeleccionar('completo')">📦 Bazar completo</button>
+        <button type="button" class="btn-secondary btn-sm" onclick="backupExportSeleccionar('ninguno')">Ninguno</button>
+      </div>
+      <div id="be-sections" style="max-height:340px;overflow-y:auto;"></div>
+      <p id="be-resumen" style="margin-top:10px;font-size:var(--fs-xs);color:var(--color-text-muted);"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-backup-export')">Cancelar</button>
+      <button class="btn-primary" onclick="ejecutarExportacionBazar()">⬇️ Descargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal importar (secciones + Combinar / Reemplazar) -->
+<div id="modal-backup-import" class="modal-overlay">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-header">
+      <h2 class="modal-title">📥 Importar datos</h2>
+      <button class="modal-close" onclick="closeModal('modal-backup-import')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="bi-file-info" style="font-size:var(--fs-xs);color:var(--color-text-muted);margin-bottom:12px;"></p>
+      <div id="bi-source-wrap" class="form-group" style="display:none;">
+        <label class="form-label" for="bi-source">Bazar del archivo</label>
+        <select id="bi-source" class="form-select" onchange="backupImportSourceChanged()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Qué quieres importar?</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button type="button" class="btn-secondary btn-sm" onclick="backupImportSeleccionar('todo')">Todo</button>
+          <button type="button" class="btn-secondary btn-sm" onclick="backupImportSeleccionar('nada')">Nada</button>
+        </div>
+        <div id="bi-sections" style="max-height:230px;overflow-y:auto;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bi-dest">Destino</label>
+        <select id="bi-dest" class="form-select" onchange="backupImportRefresh()"></select>
+      </div>
+      <div id="bi-new-name-wrap" class="form-group" style="display:none;">
+        <label class="form-label" for="bi-new-name">Nombre del bazar nuevo</label>
+        <input id="bi-new-name" class="form-input" type="text">
+      </div>
+      <div id="bi-modo-wrap" class="form-group">
+        <label class="form-label">Modo</label>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;cursor:pointer;">
+          <input type="radio" name="bi-modo" value="combinar" checked onchange="backupImportRefresh()" style="margin-top:3px;accent-color:var(--color-accent);">
+          <span><strong>Combinar</strong><br><small style="color:var(--color-text-muted);">Agrega lo nuevo y actualiza lo que ya existe (por id). No borra nada.</small></span>
+        </label>
+        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+          <input type="radio" name="bi-modo" value="reemplazar" onchange="backupImportRefresh()" style="margin-top:3px;accent-color:var(--color-accent);">
+          <span><strong>Reemplazar</strong><br><small style="color:var(--color-text-muted);">Sustituye por completo las secciones marcadas. Lo actual en ellas se pierde.</small></span>
+        </label>
+      </div>
+      <div id="bi-warnings"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="bi-full-btn" class="btn-danger btn-sm" style="display:none;" onclick="reemplazarTodaLaApp()">⚠️ Reemplazar toda la app</button>
+      <button class="btn-secondary" onclick="closeModal('modal-backup-import')">Cancelar</button>
+      <button class="btn-primary" onclick="ejecutarImportacion()">📥 Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Rol de staff -->
+<div id="modal-rol" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-rol-title">Nuevo Rol</h2>
+      <button class="modal-close" onclick="closeModal('modal-rol')">✕</button>
+    </div>
+    <form id="form-rol" onsubmit="saveRolHandler(event)">
+      <input type="hidden" id="rol-id">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre del rol *</label>
+          <input type="text" id="rol-nombre" class="form-input" required placeholder="Ej. Logística">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Color</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input type="color" id="rol-color" class="form-input" style="width:60px;height:42px;padding:2px;cursor:pointer;" value="#0d9488">
+            <span style="font-size:var(--fs-xs);color:var(--color-text-muted);">Para distinguirlo en la lista de responsables</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-rol')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar Rol</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL ROL -->
+
+<!-- Modal: Responsable (persona del staff) -->
+<div id="modal-responsable" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-resp-title">Nuevo Responsable</h2>
+      <button class="modal-close" onclick="closeModal('modal-responsable')">✕</button>
+    </div>
+    <form id="form-responsable" onsubmit="saveResponsableHandler(event)">
+      <input type="hidden" id="resp-id">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre completo *</label>
+          <input type="text" id="resp-nombre" class="form-input" required placeholder="Ej. Ana García">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rol</label>
+          <select id="resp-rol" class="form-select"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="text" id="resp-tel" class="form-input" placeholder="55-1234-5678">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="resp-email" class="form-input" placeholder="nombre@ejemplo.com">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-responsable')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar Responsable</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- / #MODAL RESPONSABLE -->
+
+<!-- Modal historial de expositor (Sprint 3) -->
+<div id="modal-historial" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="historial-modal-title">Historial</h2>
+      <button class="modal-close" onclick="closeModal('modal-historial')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="historial-exp-id">
+      <div id="historial-list" style="max-height:420px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger btn-sm" onclick="clearHistorial(document.getElementById('historial-exp-id').value)">🗑️ Limpiar historial</button>
+      <button class="btn-secondary" onclick="closeModal('modal-historial')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modales de alta: tarea, artículo, actividad y gasto (el alta siempre es pop-up) -->
+<div id="modal-tarea" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Nueva tarea</h2>
+      <button class="modal-close" type="button" onclick="closeModal('modal-tarea')" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="form-tarea" onsubmit="saveTareaHandler(event)">
+      <div class="modal-body">
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="tarea-fase">Fase</label><select id="tarea-fase" class="form-select" onchange="toggleTareaAvance()"><option value="previo">Previo al evento</option><option value="post">Posterior al evento</option></select></div>
+        <div class="form-group"><label class="form-label" for="tarea-fecha">Fecha de entrega</label><input type="date" id="tarea-fecha" class="form-input" ></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="tarea-actividad">Actividad *</label><input type="text" id="tarea-actividad" class="form-input" required placeholder="Ej. Apartar auditorio"></div>
+        <div class="form-group"><label class="form-label" for="tarea-descripcion">Descripción</label><textarea id="tarea-descripcion" class="form-textarea" placeholder="Detalles de la tarea"></textarea></div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="tarea-rol">Rol / área</label><select id="tarea-rol" class="form-select" onchange="refreshModalPersona('tarea')"></select></div>
+        <div class="form-group"><label class="form-label" for="tarea-responsable">Responsable</label><select id="tarea-responsable" class="form-select"></select></div>
+          <div class="form-group" id="tarea-avance-group"><label class="form-label" for="tarea-avance">Avances</label><input type="text" id="tarea-avance" class="form-input" placeholder="Estado / avances"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-tarea')">Cancelar</button>
+        <button type="submit" class="btn-primary">Agregar tarea</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-compra" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Nuevo artículo</h2>
+      <button class="modal-close" type="button" onclick="closeModal('modal-compra')" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="form-compra" onsubmit="saveCompraHandler(event)">
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label" for="compra-articulo">Artículo *</label><input type="text" id="compra-articulo" class="form-input" required placeholder="Ej. Caja de dulces"></div>
+        <div class="form-group"><label class="form-label" for="compra-descripcion">Descripción</label><input type="text" id="compra-descripcion" class="form-input" placeholder="Marca, tamaño, notas…"></div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="compra-rol">Rol / área</label><select id="compra-rol" class="form-select" onchange="refreshModalPersona('compra')"></select></div>
+        <div class="form-group"><label class="form-label" for="compra-responsable">Responsable</label><select id="compra-responsable" class="form-select"></select></div>
+        <div class="form-group"><label class="form-label" for="compra-fecha">Fecha de entrega</label><input type="date" id="compra-fecha" class="form-input" ></div>
+        </div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="compra-cantidad">Cantidad</label><input type="number" id="compra-cantidad" class="form-input" min="0" step="1" value="1" oninput="updateCompraUnitHint()"></div>
+        <div class="form-group"><label class="form-label" for="compra-costo-total">Costo total</label><input type="number" id="compra-costo-total" class="form-input" min="0" step="0.01" value="0" oninput="updateCompraUnitHint()"></div>
+        </div>
+        <p class="form-hint" id="compra-unit-hint" style="margin:-4px 0 12px;">Costo unitario calculado: $0.00</p>
+        <div class="form-switch">
+          <span class="switch-label">¿El costo unitario ya incluye IVA?</span>
+          <label class="switch" aria-label="El costo unitario ya incluye IVA">
+            <input type="checkbox" id="compra-iva-incluido" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-compra')">Cancelar</button>
+        <button type="submit" class="btn-primary">Agregar artículo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-actividad" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Nueva actividad</h2>
+      <button class="modal-close" type="button" onclick="closeModal('modal-actividad')" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="form-actividad" onsubmit="saveActividadHandler(event)">
+      <div class="modal-body">
+        <div class="form-group" id="act-dia-group" hidden><label class="form-label" for="act-dia">Día</label><select id="act-dia" class="form-select"></select><p class="form-hint">«Todos los días» repite la actividad en cada día del evento.</p></div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="act-inicio">Hora de inicio</label><input type="time" id="act-inicio" class="form-input" ></div>
+        <div class="form-group"><label class="form-label" for="act-fin">Hora de fin</label><input type="time" id="act-fin" class="form-input" ></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="act-actividad">Actividad *</label><input type="text" id="act-actividad" class="form-input" required placeholder="Ej. Apertura de puertas"></div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="act-lugar">Lugar</label><input type="text" id="act-lugar" class="form-input" placeholder="Ej. Auditorio"></div>
+        <div class="form-group"><label class="form-label" for="act-rol">Rol / área encargada</label><select id="act-rol" class="form-select" onchange="refreshModalPersona('act')"></select></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="act-responsable">Responsable</label><select id="act-responsable" class="form-select" ></select></div>
+        <div class="form-group"><label class="form-label" for="act-notas">Notas / descripción</label><textarea id="act-notas" class="form-textarea" placeholder="Detalles de la actividad"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-actividad')">Cancelar</button>
+        <button type="submit" class="btn-primary">Agregar actividad</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-gasto" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Nuevo gasto</h2>
+      <button class="modal-close" type="button" onclick="closeModal('modal-gasto')" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="form-gasto" onsubmit="saveGastoHandler(event)">
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label" for="gasto-nombre">Concepto *</label><input type="text" id="gasto-nombre" class="form-input" required placeholder="Ej. Renta del lugar"></div>
+        <div class="form-group"><label class="form-label" for="gasto-comentario">Comentario</label><input type="text" id="gasto-comentario" class="form-input" placeholder="Opcional"></div>
+        <div class="form-row">
+        <div class="form-group"><label class="form-label" for="gasto-total">Costo total</label><input type="number" id="gasto-total" class="form-input" min="0" step="0.01" value="0" oninput="updateGastoUnitHint()"></div>
+        <div class="form-group"><label class="form-label" for="gasto-qty">Cantidad</label><input type="number" id="gasto-qty" class="form-input" min="1" step="1" value="1" oninput="updateGastoUnitHint()"></div>
+        </div>
+        <p class="form-hint" id="gasto-unit-hint" style="margin:-4px 0 12px;">Costo unitario: $0.00</p>
+        <div class="form-group" id="gasto-iva-group" style="margin-bottom:0;">
+          <div class="form-switch">
+            <span class="switch-label">Este costo ya incluye IVA</span>
+            <label class="switch"><input type="checkbox" id="gasto-iva-incluido"><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-gasto')">Cancelar</button>
+        <button type="submit" class="btn-primary">Agregar gasto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: traer un expositor desde Expositores guardados -->
+<div id="modal-guardados" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Traer de expositores guardados</h2>
+      <button class="modal-close" onclick="closeModal('modal-guardados')" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="guardados-picker" style="max-height:420px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-guardados')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-app-dialog" class="modal-overlay" role="presentation" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title" aria-describedby="app-dialog-message">
+    <div class="modal-header">
+      <h2 class="modal-title" id="app-dialog-title">BAZARIX</h2>
+      <button class="modal-close" type="button" onclick="cancelAppDialog()" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="app-dialog-form" onsubmit="submitAppDialog(event)">
+      <div class="modal-body">
+        <p id="app-dialog-message" style="white-space:pre-line;margin:0 0 12px;"></p>
+        <div id="app-dialog-input-group" class="form-group" style="display:none;margin-bottom:0;">
+          <label id="app-dialog-input-label" class="form-label" for="app-dialog-input">Nombre</label>
+          <input id="app-dialog-input" class="form-input" type="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="app-dialog-cancel" class="btn-secondary" type="button" onclick="cancelAppDialog()">Cancelar</button>
+        <button id="app-dialog-confirm" class="btn-primary" type="submit">Aceptar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Mapeo del evento (vista de presentación del plano) -->
+<div id="presentation-overlay" style="display:none;position:fixed;inset:0;z-index:9999;
+    background:#0f172a;flex-direction:column;align-items:center;justify-content:center;">
+  <div style="display:flex;justify-content:space-between;align-items:center;width:100%;
+      padding:12px 24px;background:rgba(255,255,255,0.05);">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <strong style="color:#fff;font-size:14px;">🗺️ Mapeo del evento</strong>
+      <span style="color:#94a3b8;font-size:14px;font-weight:700;" id="presentation-bazar-name">BAZARIX</span>
+    </div>
+    <select id="presentation-floor-select" onchange="changePresentationFloor(this.value)" aria-label="Cambiar piso del mapeo"
+            style="background:#1e293b;color:#fff;border:1px solid #475569;padding:8px 12px;border-radius:8px;"></select>
+    <button onclick="exitPresentationMode()"
+            style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:8px 16px;
+                   border-radius:8px;cursor:pointer;font-weight:700;">✕ Salir</button>
+  </div>
+  <canvas id="presentation-canvas" style="max-width:100%;max-height:calc(100vh - 80px);"></canvas>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     # SCRIPTS — Core.js debe ir al final del <body>
+     [EDITABLE: carga módulos adicionales ANTES de Core.js]
+═══════════════════════════════════════════════════════════════════ -->
+<!-- ── MÓDULOS — orden de dependencias ── -->
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/dialogs.js"></script>
+<script src="js/bazaars.js"></script>
+<script src="js/responsables.js"></script>
+<script src="js/eventos.js"></script>
+<script src="js/expositores.js"></script>
+<script src="js/categorias.js"></script>
+<script src="js/finanzas.js"></script>
+<script src="js/costos.js"></script>
+<script src="js/mesas.js"></script>
+<script src="js/modales.js"></script>
+<script src="js/checklist.js"></script>
+<div class="emoji-picker" id="emoji-picker" role="dialog" aria-label="Selector de emojis" hidden>
+  <div class="emoji-picker-heading">
+    <strong>Elegir emoji</strong>
+    <button class="emoji-picker-close" id="emoji-picker-close" type="button" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="emoji-picker-shortcuts">
+    <p><strong>Atajos del teclado:</strong></p>
+    <p>Windows: <kbd>Win</kbd> + <kbd>.</kbd></p>
+    <p>Mac: <kbd>Control</kbd> + <kbd>Command</kbd> + <kbd>Espacio</kbd></p>
+    <p>Linux: el atajo depende de la distribución y la aplicación.</p>
+  </div>
+  <div class="emoji-picker-grid" id="emoji-picker-grid" aria-label="Emojis disponibles"></div>
+  <p class="emoji-picker-hint" id="emoji-picker-hint" aria-live="polite">Selecciona un emoji para agregarlo al campo.</p>
+</div>
+
+<script src="js/plantillas.js"></script>
+<script src="js/invitados.js"></script>
+<script src="js/asistencia.js"></script>
+<script src="js/alertas.js"></script>
+<script src="js/metricas.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/canvas_helpers.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/historial.js"></script>
+<script src="js/evento_dia.js"></script>
+<script src="js/evento_ficha.js"></script>
+<script src="js/tareas.js"></script>
+<script src="js/compras.js"></script>
+<script src="js/export_excel.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/emojis.js"></script>
+<script src="js/init.js"></script>
+
+</body>
+</html>

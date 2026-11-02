@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Fondo oscuro coordinado con la app -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18222d"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <!-- Gradiente Rosa para el toldo -->
+    <linearGradient id="salmon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff85a1"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+    <!-- Gradiente Menta para la base/acentos -->
+    <linearGradient id="mint" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Contenedor Base (Estilo App Redondeada) -->
+  <rect x="32" y="32" width="448" height="448" rx="108" fill="url(#bg)" stroke="#22303c" stroke-width="4"/>
+
+  <!-- Anillo decorativo Menta -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#mint)" stroke-width="6" opacity="0.25"/>
+
+  <!-- Carpa de Bazar (Isotipo BAZARIX) -->
+  <!-- Techo de la carpa -->
+  <path d="M256 130 L370 210 L142 210 Z" fill="url(#salmon)"/>
+  <path d="M256 130 L256 210" stroke="#ffffff" stroke-width="5" opacity="0.4"/>
+  <path d="M256 130 L199 210" stroke="#ffffff" stroke-width="3" opacity="0.25"/>
+  <path d="M256 130 L313 210" stroke="#ffffff" stroke-width="3" opacity="0.25"/>
+
+  <!-- Faldón / Olas del toldo -->
+  <path d="M142 210 Q170 232 199 210 Q227 232 256 210 Q285 232 313 210 Q342 232 370 210 L370 230 Q342 252 313 230 Q285 252 256 230 Q227 252 199 230 Q170 252 142 230 Z" fill="#e11d48"/>
+
+  <!-- Estructura/Columnas -->
+  <rect x="172" y="230" width="20" height="130" rx="5" fill="url(#mint)"/>
+  <rect x="320" y="230" width="20" height="130" rx="5" fill="url(#mint)"/>
+
+  <!-- Base de puesto / Mostrador -->
+  <rect x="152" y="320" width="208" height="40" rx="10" fill="#1e293b" stroke="url(#mint)" stroke-width="4"/>
+</svg>
