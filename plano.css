@@ -672,3 +672,21 @@ html .bazaar-home-card.active .bazaar-home-emoji { background: color-mix(in srgb
 .table-style-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 0 var(--space-5); align-items: end; }
 .table-color-input { display: block; width: 3.2rem; height: 2.6rem; padding: 2px; border: 1.5px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-alt); cursor: pointer; }
 .table-color-input:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ═══ INDICADOR DE GUARDADO / SINCRONIZACIÓN (Sprint 1) ═══ */
+.save-indicator[data-status] { display: inline-flex; align-items: center; justify-content: flex-end; gap: .4rem; }
+.sidebar-footer .save-indicator[data-status] { min-width: 0; max-width: 15rem; white-space: normal; text-align: right; line-height: 1.2; }
+.sync-dot { flex: 0 0 auto; width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; }
+.save-indicator[data-status="saved"]   { color: var(--color-paid); }
+.save-indicator[data-status="pending"] { color: var(--color-warning); }
+.save-indicator[data-status="saving"]  { color: var(--color-accent); }
+.save-indicator[data-status="offline"],
+.save-indicator[data-status="error"]   { color: var(--color-danger); }
+.save-indicator[data-status="saving"] .sync-dot {
+  width: .8rem; height: .8rem; background: none;
+  border: 2px solid currentColor; border-top-color: transparent; animation: sync-spin .8s linear infinite;
+}
+.save-indicator[data-status="pending"] .sync-dot { animation: sync-pulse 1.2s ease-in-out infinite; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
+@keyframes sync-pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .save-indicator .sync-dot { animation: none !important; } }

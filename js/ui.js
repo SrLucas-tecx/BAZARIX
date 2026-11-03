@@ -306,6 +306,16 @@ function renderSettingsMenu() {
       <div class="settings-label">Color de la interfaz</div>
       <div class="color-palette">${swatches(accent, "setThemeColor")}</div>
     </div>
+    <div class="settings-section">
+      <div class="settings-label">Almacenamiento</div>
+      <div class="segmented settings-mode" role="group" aria-label="Modo de almacenamiento">
+        <button type="button" class="${StorageAdapter.mode() === "local" ? "active" : ""}" aria-pressed="${StorageAdapter.mode() === "local"}" onclick="setStorageMode('local')">💻 Local</button>
+        <button type="button" class="${StorageAdapter.mode() === "team" ? "active" : ""}" aria-pressed="${StorageAdapter.mode() === "team"}" onclick="setStorageMode('team')">👥 Equipo</button>
+      </div>
+      <p class="form-hint">${StorageAdapter.mode() === "team"
+        ? "Equipo (demo): la sincronización es simulada. Aún no se conecta a Google Sheets."
+        : "Local: tus datos viven solo en este navegador."}</p>
+    </div>
     ${bz ? `
     <div class="settings-section">
       <div class="settings-label">Bazar activo · ${escapeHTML(bz.name)}</div>

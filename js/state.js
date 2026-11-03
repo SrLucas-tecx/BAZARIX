@@ -347,7 +347,7 @@ function cloneDefaultState() {
 // ==========================================
 function loadState() {
   try {
-    const saved = localStorage.getItem("EXPOSITORES_APP_STATE");
+    const saved = StorageAdapter.load();
     if (saved) {
       const parsed = JSON.parse(saved);
       return migrateState(parsed);
@@ -556,15 +556,9 @@ function migrateState(parsed) {
 }
 
 function saveState() {
-  try {
-    localStorage.setItem("EXPOSITORES_APP_STATE", JSON.stringify(AppState));
-    if (typeof showSaveIndicator === "function") showSaveIndicator();
-    return true;
-  } catch (err) {
-    console.error("Error al guardar datos:", err);
-    showToast("⚠️ Error al guardar datos", "error");
-    return false;
-  }
+  const ok = StorageAdapter.save(AppState);   // storage.js decide a dónde va (local o equipo)
+  if (!ok) showToast("⚠️ Error al guardar datos", "error");
+  return ok;
 }
 
 function getActiveBazaar() {

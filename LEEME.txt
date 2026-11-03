@@ -1,3 +1,5 @@
-BAZARIX (version local, sin backend)
-Abre index.html con Live Server (VS Code) o con: npx serve .   (o python -m http.server 5500)
-Los datos se guardan en el navegador (localStorage). Los graficos, PDF y Excel necesitan internet.
+BAZARIX (version local) - Sprint 1: capa de almacenamiento
+Abrir index.html con Live Server, o:  npx serve .   /   python -m http.server 5500
+Modos (engranaje > Almacenamiento): Local (un navegador) y Equipo (demo simulado; Google Sheets llega en el sprint 2).
+Probar la logica de sincronizacion:  node test_storage.js
+Para simular un fallo de subida en modo Equipo (consola del navegador):  localStorage.BAZARIX_DEMO_FAIL="1"
