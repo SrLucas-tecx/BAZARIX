@@ -525,7 +525,7 @@ function openModalExpositorForCurrentCategory() {
 function populateCategoriaSelect(selectedCategoryId = "") {
   const sel = document.getElementById("exp-categoria");
   if (!sel) return;
-  sel.innerHTML = `<option value="">Sin categoría</option>${AppState.categorias.map((category) =>
+  sel.innerHTML = `<option value="">Sin categoría</option>${getCategoriasPrincipales().map((category) =>
     `<option value="${escapeHTML(category.id)}">${category.emoji} ${escapeHTML(category.nombre)}</option>`
   ).join("")}`;
   sel.value = selectedCategoryId;

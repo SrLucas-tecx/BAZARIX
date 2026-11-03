@@ -149,6 +149,7 @@ class BazaarCanvasManager {
     this.canvas.addEventListener("dblclick",    (e) => this.handleDoubleClick(e));
     this.canvas.addEventListener("contextmenu", (e) => { e.preventDefault(); this.handleRightClick(e); });
     this.canvas.addEventListener("wheel",       (e) => { e.preventDefault(); zoomBazaar(e.deltaY < 0 ? 0.08 : -0.08); }, { passive: false });
+    this.attachTouchEvents();
     document.addEventListener("keydown", (e) => handleMapShortcut(e));
     document.addEventListener("keydown", (e) => {
       if (this.mode !== "select" || !["Delete", "Backspace"].includes(e.key)) return;
@@ -156,6 +157,41 @@ class BazaarCanvasManager {
       e.preventDefault();
       deleteSelectedMapObject();
     });
+  }
+
+  // Pantallas táctiles: un dedo = ratón (mover mesas/plano), doble toque = doble clic, dos dedos = zoom.
+  attachTouchEvents() {
+    const canvas = this.canvas;
+    canvas.style.touchAction = "none";   // el plano maneja sus propios gestos (no hace scroll de la página)
+    let pinch = null, lastTap = 0, moved = false;
+    const fake = (t) => ({ clientX: t.clientX, clientY: t.clientY, button: 0, preventDefault() {} });
+    const gap = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      if (e.touches.length >= 2) { this.handleMouseUp(); pinch = gap(e.touches); return; }
+      moved = false;
+      this.handleMouseDown(fake(e.touches[0]));
+    }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (e.touches.length >= 2 && pinch) {
+        const now = gap(e.touches);
+        zoomBazaar((now - pinch) / 250);
+        pinch = now;
+        return;
+      }
+      if (e.touches.length === 1 && !pinch) { moved = true; this.handleMouseMove(fake(e.touches[0])); }
+    }, { passive: false });
+    canvas.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      if (pinch) { if (e.touches.length < 2) pinch = null; return; }
+      this.handleMouseUp();
+      const t = e.changedTouches[0];
+      const now = Date.now();
+      if (!moved && now - lastTap < 350) { this.handleDoubleClick(fake(t)); lastTap = 0; }
+      else if (!moved) lastTap = now;
+    }, { passive: false });
+    canvas.addEventListener("touchcancel", () => { pinch = null; this.handleMouseUp(); });
   }
 
   // Clic derecho: cancela zona en construcción

@@ -30,12 +30,18 @@ const CATALOG_TEXT = {
 // ==========================================
 // LECTURA / HELPERS
 // ==========================================
+/** Copia ordenada A→Z (español, sin distinguir acentos ni mayúsculas). No altera el orden guardado. */
+function _porNombre(list) {
+  return [...(list || [])].sort((a, b) =>
+    String(a.nombre || "").localeCompare(String(b.nombre || ""), "es", { sensitivity: "base", numeric: true }));
+}
+
 function getCategoriasPrincipales() {
-  return AppState.categorias;
+  return _porNombre(AppState.categorias);
 }
 
 function getCaracteristicas() {
-  return AppState.caracteristicas || [];
+  return _porNombre(AppState.caracteristicas);
 }
 
 /** Solo la categoría (ya no hay subcategoría). */

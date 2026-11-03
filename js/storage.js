@@ -176,16 +176,18 @@ const SYNC_LABELS = {
 };
 
 function bindSaveIndicator() {
-  const el = document.getElementById("save-indicator");
-  if (!el) return;
+  const els = [...document.querySelectorAll(".save-indicator")];   // menú (escritorio) y encabezado (móvil/tablet)
+  if (!els.length) return;
   let hideTimer = null;
   Sync.on((s) => {
-    el.dataset.status = s.status;
-    el.innerHTML = `<span class="sync-dot" aria-hidden="true"></span><span>${SYNC_LABELS[s.status]}</span>`;
+    els.forEach((el) => {
+      el.dataset.status = s.status;
+      el.innerHTML = `<span class="sync-dot" aria-hidden="true"></span><span>${SYNC_LABELS[s.status]}</span>`;
+    });
     clearTimeout(hideTimer);
-    if (s.lastSavedAt === null && s.status === "saved") { el.classList.remove("show"); return; }   // arranque: sin avisos
-    el.classList.add("show");
-    if (s.status === "saved") hideTimer = setTimeout(() => el.classList.remove("show"), 2500);
+    if (s.lastSavedAt === null && s.status === "saved") { els.forEach((el) => el.classList.remove("show")); return; }   // arranque: sin avisos
+    els.forEach((el) => el.classList.add("show"));
+    if (s.status === "saved") hideTimer = setTimeout(() => els.forEach((el) => el.classList.remove("show")), 2500);
   });
 }
 

@@ -5,9 +5,10 @@
        META Y RECURSOS EXTERNOS
   ═══════════════════════════════════════════════════════════════ -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d9488">
   <title>BAZARIX — Gestión de Bazares</title>
-  <link rel="icon" type="image/svg+xml" href="./BAZARIX-svg.svg?v=2">
+  <link rel="icon" type="image/svg+xml" href="BAZARIX-svg.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -21,6 +22,7 @@
   </script>
   <link rel="stylesheet" href="Styles.css">
   <link rel="stylesheet" href="plano.css">
+  <link rel="stylesheet" href="responsive.css">
   <!-- Layout y estilos en Styles.css -->
 </head>
 <body class="dark">
@@ -139,6 +141,7 @@
     <header class="header">
       <button class="btn-icon" id="btn-toggle-sidebar" title="Menú" style="flex-shrink:0;">☰</button>
       <h1 class="header-title" id="page-title">Ficha del Evento</h1>
+      <span class="save-indicator header-save" aria-live="polite"></span>
     </header>
     <!-- / #HEADER -->
 

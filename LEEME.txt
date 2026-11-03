@@ -1,5 +1,5 @@
-BAZARIX (version local) - Sprint 1: capa de almacenamiento
-Abrir index.html con Live Server, o:  npx serve .   /   python -m http.server 5500
-Modos (engranaje > Almacenamiento): Local (un navegador) y Equipo (demo simulado; Google Sheets llega en el sprint 2).
-Probar la logica de sincronizacion:  node test_storage.js
-Para simular un fallo de subida en modo Equipo (consola del navegador):  localStorage.BAZARIX_DEMO_FAIL="1"
+BAZARIX local - paquete de CAMBIOS (copia estos archivos encima de tu proyecto, respetando carpetas)
+NUEVOS:    js/storage.js, responsive.css, test_storage.js
+CAMBIADOS: index.html, plano.css, js/state.js, js/ui.js, js/categorias.js, js/modales.js, js/canvas.js
+Probar logica de sincronizacion: node test_storage.js
+Simular fallo de subida (modo Equipo, consola): localStorage.BAZARIX_DEMO_FAIL="1"
