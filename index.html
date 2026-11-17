@@ -67,6 +67,7 @@
         <button class="nav-item" onclick="switchTab('tareas')">✅ Tareas (Previo / Post)</button>
         <button class="nav-item" onclick="switchTab('compras')">🛒 Lista de Compras</button>
         <button class="nav-item" onclick="switchTab('minuto-a-minuto')">🕒 Minuto a Minuto</button>
+        <button class="nav-item" onclick="switchTab('extras')">⭐ Actividades extra</button>
         <button class="nav-item" onclick="switchTab('invitados')">🎟️ Asistencia de Expositores</button>
         </div>
       </div>
@@ -1000,6 +1001,30 @@
 
 
       <!-- ─────────────────────────────────────────────────────────
+           # SECCIÓN: ACTIVIDADES EXTRA (con caja opcional)
+      ───────────────────────────────────────────────────────── -->
+      <section id="sec-extras" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">⭐ Actividades extra</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">
+              Talleres, shows, rifas, concursos… Si generan ingreso para el bazar llevan su propia caja; si no, son solo una actividad. Puedes agregarlas al Minuto a Minuto.
+            </p>
+          </div>
+          <button class="btn-primary" onclick="openModalExtra()">+ Nueva actividad extra</button>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card accent-teal"><div class="stat-icon">⭐</div><div class="stat-value" id="extras-stat-total">0</div><div class="stat-label">Actividades extra</div></div>
+          <div class="stat-card accent-gold"><div class="stat-icon">💰</div><div class="stat-value" id="extras-stat-generan">0</div><div class="stat-label">Generan ingreso</div></div>
+          <div class="stat-card accent-green"><div class="stat-icon">💎</div><div class="stat-value" id="extras-stat-neto">$0</div><div class="stat-label">Remuneración neta</div></div>
+          <div class="stat-card accent-red"><div class="stat-icon">🧾</div><div class="stat-value" id="extras-stat-cajas">0</div><div class="stat-label">Cajas abiertas con movimientos</div></div>
+        </div>
+        <div id="extras-grid" class="cards-grid"></div>
+      </section>
+      <!-- / #SECCIÓN ACTIVIDADES EXTRA -->
+
+
+      <!-- ─────────────────────────────────────────────────────────
            # SECCIÓN: DÍA DEL EVENTO (Sprint 4)
       ───────────────────────────────────────────────────────── -->
       <section id="sec-dia-evento" class="page-section">
@@ -1627,6 +1652,135 @@
         <button type="submit" class="btn-primary">Duplicar plano</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- # MODAL: FICHA DE ACTIVIDAD EXTRA -->
+<div id="modal-extra" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-extra-title">Nueva actividad extra</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-extra')">✕</button>
+    </div>
+    <form id="form-extra" onsubmit="saveExtraHandler(event)">
+      <input type="hidden" id="extra-id">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="extra-nombre">Nombre *</label><input type="text" id="extra-nombre" class="form-input" required placeholder="Ej. Taller de pulseras"></div>
+          <div class="form-group"><label class="form-label" for="extra-tipo">Tipo</label><select id="extra-tipo" class="form-select"></select></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="extra-descripcion">Descripción</label><textarea id="extra-descripcion" class="form-textarea" placeholder="¿En qué consiste?"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="extra-estado">Estado</label><select id="extra-estado" class="form-select"></select></div>
+          <div class="form-group" id="extra-dia-group" hidden><label class="form-label" for="extra-dia">Día</label><select id="extra-dia" class="form-select"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="extra-inicio">Hora de inicio</label><input type="time" id="extra-inicio" class="form-input"></div>
+          <div class="form-group"><label class="form-label" for="extra-fin">Hora de fin</label><input type="time" id="extra-fin" class="form-input"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="extra-lugar">Lugar</label><input type="text" id="extra-lugar" class="form-input" placeholder="Ej. Patio central"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="extra-rol">Rol / área encargada</label><select id="extra-rol" class="form-select" onchange="refreshModalPersona('extra')"></select></div>
+          <div class="form-group"><label class="form-label" for="extra-responsable">Responsable</label><select id="extra-responsable" class="form-select"></select></div>
+        </div>
+
+        <div class="form-switch" style="margin-bottom:var(--space-3);">
+          <span class="switch-label">¿Genera remuneración para el bazar?<small class="form-hint" style="display:block;font-weight:500;">Si sí, tendrá su propia caja con conteo de efectivo.</small></span>
+          <label class="switch" aria-label="¿Genera remuneración para el bazar?"><input type="checkbox" id="extra-genera" onchange="updateExtraGenera()"><span class="slider"></span></label>
+        </div>
+        <div id="extra-caja-fields" class="ficha-dias-box" hidden>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label" for="extra-precio">Precio por persona / boleto (MXN)</label><input type="number" id="extra-precio" class="form-input" min="0" step="0.01" placeholder="Opcional"><p class="form-hint">Con precio, la caja muestra un botón de cobro rápido.</p></div>
+            <div class="form-group"><label class="form-label" for="extra-meta">Meta de ingreso (MXN)</label><input type="number" id="extra-meta" class="form-input" min="0" step="0.01" placeholder="Opcional"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;"><label class="form-label" for="extra-fondo">Fondo inicial de caja (MXN)</label><input type="number" id="extra-fondo" class="form-input" min="0" step="0.01" placeholder="Cambio con el que arranca la caja"></div>
+        </div>
+
+        <div class="form-group"><label class="form-label" for="extra-notas">Notas internas</label><textarea id="extra-notas" class="form-textarea" placeholder="Material, permisos, pendientes…"></textarea></div>
+        <div class="form-switch">
+          <span class="switch-label">Agregar al Minuto a Minuto<small class="form-hint" style="display:block;font-weight:500;">Se crea (o actualiza) una actividad con este nombre, horario y responsable.</small></span>
+          <label class="switch" aria-label="Agregar al Minuto a Minuto"><input type="checkbox" id="extra-minuto"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-extra')">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar ficha</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- # MODAL: CAJA DE UNA ACTIVIDAD EXTRA -->
+<div id="modal-caja" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="caja-title">🧾 Caja</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-caja')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="caja-extra-id">
+      <div id="caja-summary" class="caja-summary"></div>
+      <p id="caja-closed-note" class="form-hint" aria-live="polite"></p>
+
+      <h3 class="caja-h">Movimientos</h3>
+      <div class="caja-add">
+        <select id="caja-tipo" class="form-select" aria-label="Tipo de movimiento"><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
+        <input type="text" id="caja-concepto" class="form-input" placeholder="Concepto (opcional)" aria-label="Concepto" onkeydown="if(event.key==='Enter'){event.preventDefault();addCajaMov();}">
+        <input type="number" id="caja-monto" class="form-input" min="0" step="0.01" inputmode="decimal" placeholder="Monto" aria-label="Monto" onkeydown="if(event.key==='Enter'){event.preventDefault();addCajaMov();}">
+        <button type="button" id="caja-add-btn" class="btn-secondary" onclick="addCajaMov()">Agregar</button>
+      </div>
+      <div id="caja-quick" class="caja-quick"></div>
+      <div class="payments-table-wrap" style="margin-top:var(--space-3);max-height:16rem;overflow-y:auto;">
+        <table class="payments-table" style="min-width:24rem;"><thead><tr><th>Hora</th><th>Concepto</th><th>Monto</th><th></th></tr></thead><tbody id="caja-movs-list"></tbody></table>
+      </div>
+
+      <h3 class="caja-h">Conteo de efectivo</h3>
+      <div id="caja-denoms" class="caja-denoms"></div>
+      <p id="caja-conteo-preview" class="caja-preview" aria-live="polite"></p>
+      <div class="form-group"><label class="form-label" for="caja-conteo-nota">Nota del conteo</label><input type="text" id="caja-conteo-nota" class="form-input" placeholder="Ej. Contó Ana y Luis"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" id="caja-cierre-btn" onclick="toggleCierreCaja()">🔒 Cerrar caja</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-caja')">Cerrar ventana</button>
+      <button type="button" class="btn-primary" onclick="saveCajaConteo()">Guardar conteo</button>
+    </div>
+  </div>
+</div>
+
+<!-- # MODAL: CONEXIÓN DEL EQUIPO (modo Equipo) -->
+<div id="modal-team" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">👥 Conexión del equipo</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-team')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="team-type">Tipo de conexión</label>
+        <select id="team-type" class="form-select" onchange="updateTeamConfigFields()">
+          <option value="sheets">Google Sheets (Apps Script)</option>
+          <option value="demo">Demo (simulada, sin Google)</option>
+        </select>
+      </div>
+      <div id="team-sheets-fields">
+        <div class="form-group">
+          <label class="form-label" for="team-url">URL de la aplicación web</label>
+          <input id="team-url" class="form-input" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="team-key">Clave del equipo</label>
+          <input id="team-key" class="form-input" type="password" autocomplete="off" placeholder="La muestra el menú BAZARIX de la hoja">
+          <p class="form-hint">Las fotos no se suben: quedan en el dispositivo de quien las puso.</p>
+        </div>
+      </div>
+      <p id="team-demo-note" class="form-hint" hidden>La demo guarda en este navegador y sirve solo para probar el flujo (guardado, reintentos, conflictos).</p>
+      <p class="form-hint" id="team-test-result" aria-live="polite"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="testTeamConnection()">Probar conexión</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-team')">Cancelar</button>
+      <button type="button" class="btn-primary" onclick="saveTeamConfig()">Guardar y usar</button>
+    </div>
   </div>
 </div>
 
@@ -2469,7 +2623,9 @@
 ═══════════════════════════════════════════════════════════════════ -->
 <!-- ── MÓDULOS — orden de dependencias ── -->
 <script src="js/storage.js"></script>
+<script src="js/team_core.js"></script>
 <script src="js/state.js"></script>
+<script src="js/sync_rows.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/dialogs.js"></script>
 <script src="js/bazaars.js"></script>
@@ -2512,6 +2668,7 @@
 <script src="js/evento_ficha.js"></script>
 <script src="js/tareas.js"></script>
 <script src="js/compras.js"></script>
+<script src="js/extras.js"></script>
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>

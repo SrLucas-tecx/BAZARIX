@@ -29,6 +29,7 @@ function switchTab(tabId) {
     estadisticas: "Métricas y Gráficas",
     invitados:    "Lista de Expositores",
     "minuto-a-minuto": "Minuto a Minuto",
+    extras:       "Actividades extra",
     plantillas:   "Expositores Guardados",
     "dia-evento": "Día del Evento",
     ficha:        "Panel del Bazar",
@@ -48,6 +49,7 @@ function switchTab(tabId) {
   if (tabId === "costos")       renderCostosUI();
   if (tabId === "invitados")    renderInvitados();
   if (tabId === "minuto-a-minuto") renderMinuteByMinute();
+  if (tabId === "extras")       renderExtras();
   if (tabId === "bazares")      renderBazaresTabla();
   if (tabId === "plantillas")   renderPlantillas();
   if (tabId === "categorias")   renderCategorias();
@@ -80,6 +82,7 @@ function notePreviewHTML(note, type, id) {
 const NOTE_TYPES = {
   invitado:  { list: (bz) => bz.invitados || [],               field: "notas",       label: "Nota del expositor",       render: () => renderInvitados() },
   expositor: { list: (bz) => bz.expositores || [],             field: "notas",       label: "Nota del expositor",       render: () => renderExpositores() },
+  extra:     { list: (bz) => bz.extras || [],                  field: "descripcion", label: "Descripción de la actividad", render: () => renderExtras() },
   actividad: { list: (bz) => bz.minuteByMinute || [],          field: "notes",       label: "Nota de la actividad",     render: () => renderMinuteByMinute() },
   compra:    { list: (bz) => bz.compras || [],                 field: "descripcion", label: "Descripción del artículo", render: () => renderCompras() },
   tarea:     { list: (bz) => bz.tareas || [],                  field: "descripcion", label: "Descripción de la tarea",  render: () => renderTareas() },
@@ -313,8 +316,13 @@ function renderSettingsMenu() {
         <button type="button" class="${StorageAdapter.mode() === "team" ? "active" : ""}" aria-pressed="${StorageAdapter.mode() === "team"}" onclick="setStorageMode('team')">👥 Equipo</button>
       </div>
       <p class="form-hint">${StorageAdapter.mode() === "team"
-        ? "Equipo (demo): la sincronización es simulada. Aún no se conecta a Google Sheets."
+        ? (teamConfig()?.type === "demo" ? "Equipo (demo): sincronización simulada en este navegador." : "Equipo: tus cambios se sincronizan con la hoja de Google de tu grupo.")
         : "Local: tus datos viven solo en este navegador."}</p>
+      ${StorageAdapter.mode() === "team" ? `
+      <div class="settings-actions">
+        <button type="button" class="btn-secondary btn-sm" onclick="syncNowTeam()">🔄 Sincronizar ahora</button>
+        <button type="button" class="btn-secondary btn-sm" onclick="openTeamConfig()">⚙️ Conexión…</button>
+      </div>` : ""}
     </div>
     ${bz ? `
     <div class="settings-section">

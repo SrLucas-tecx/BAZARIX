@@ -54,6 +54,8 @@ const BACKUP_SECTIONS = [
     count: (d) => `${(d.extraCosts || []).length} gasto(s) extra` },
   { key: "minutoAMinuto", scope: "bazar",  label: "Minuto a Minuto",  desc: "Agenda del evento",
     count: (d) => `${d.length} actividad(es)` },
+  { key: "extras",        scope: "bazar",  label: "Actividades extra y cajas", desc: "Fichas, movimientos de caja y conteos de efectivo",
+    count: (d) => `${(d.extras || []).length} actividad(es) · ${(d.cajaMovs || []).length} movimiento(s)` },
   { key: "plano",         scope: "bazar",  label: "Plano del evento", desc: "Pisos, mesas, elementos, zonas e imagen de fondo",
     count: (d) => `${d.floors.length} piso(s) · ${d.floors.reduce((s, f) => s + (f.tables || []).length, 0)} mesa(s)` },
   { key: "categorias",    scope: "global", label: "Categorías",       desc: "Las usan los expositores de todos los bazares",
@@ -65,7 +67,7 @@ const BACKUP_SECTIONS = [
 ];
 
 // Secciones cuyos datos apuntan a personas del Staff por id.
-const BACKUP_NEEDS_STAFF = ["tareas", "compras", "minutoAMinuto", "expositores"];
+const BACKUP_NEEDS_STAFF = ["tareas", "compras", "minutoAMinuto", "expositores", "extras"];
 
 // ==========================================
 // Helpers
@@ -77,6 +79,7 @@ const _bkIsObj = (v) => v && typeof v === "object" && !Array.isArray(v);
 function backupSectionValid(key, data) {
   if (key === "staff") return _bkIsObj(data) && (Array.isArray(data.roles) || Array.isArray(data.responsables));
   if (key === "general" || key === "costos" || key === "ficha") return _bkIsObj(data);
+  if (key === "extras") return _bkIsObj(data) && (Array.isArray(data.extras) || Array.isArray(data.cajaMovs));
   if (key === "plano") return _bkIsObj(data) && Array.isArray(data.floors);
   return Array.isArray(data);
 }
@@ -122,6 +125,7 @@ function backupExtraerSecciones(bz) {
     invitados:     bz.invitados || [],
     costos:        bz.costsConfig || emptyCostsConfig(),
     minutoAMinuto: bz.minuteByMinute || [],
+    extras:        { extras: bz.extras || [], cajaMovs: bz.cajaMovs || [] },
     plano:         { floors: bz.floors || [], activeFloorId: bz.activeFloorId },
   };
 }
@@ -262,6 +266,13 @@ const _BK_NORM = {
     ...r, id: _bkId(r.id, "minute"), time: _bkTime(r.time), horaFin: _bkTime(r.horaFin),
     activity: _bkT(r.activity), lugar: _bkT(r.lugar), area: _bkT(r.area), notes: _bkT(r.notes), dia: _bkT(r.dia),
   })),
+  extras: (d) => ({
+    extras: _bkList(d.extras || [], (x) => ({ ...x, id: _bkId(x.id, "extra"), nombre: _bkT(x.nombre) || "Actividad", descripcion: _bkT(x.descripcion),
+      genera: _bkBool(x.genera), cajaCerrada: _bkBool(x.cajaCerrada), horaInicio: _bkTime(x.horaInicio), horaFin: _bkTime(x.horaFin),
+      precioUnit: Math.max(0, _bkNum(x.precioUnit)), metaIngreso: Math.max(0, _bkNum(x.metaIngreso)), fondoInicial: Math.max(0, _bkNum(x.fondoInicial)) })),
+    cajaMovs: _bkList(d.cajaMovs || [], (m) => ({ ...m, id: _bkId(m.id, "mov"), extraId: _bkT(m.extraId), tipo: _bkT(m.tipo) === "egreso" ? "egreso" : "ingreso",
+      concepto: _bkT(m.concepto), monto: Math.max(0, _bkNum(m.monto)), ts: _bkT(m.ts) })),
+  }),
   plantillas: (list) => _bkList(list, (p) => ({
     ...p, id: _bkId(p.id, "plt"),
     nombre: _bkT(p.nombre) || _bkT(p.negocio) || "Sin nombre",
@@ -620,6 +631,10 @@ function _bkApplySection(dest, key, data, modo, sameBazaar) {
         : { ...dest.costsConfig, ...incoming, extraCosts: _bkMergeById(dest.costsConfig?.extraCosts, incoming.extraCosts) };
       break;
     }
+    case "extras":
+      dest.extras = modo === "reemplazar" ? _bkWithIds(data.extras) : _bkMergeById(dest.extras, data.extras);
+      dest.cajaMovs = modo === "reemplazar" ? _bkWithIds(data.cajaMovs) : _bkMergeById(dest.cajaMovs, data.cajaMovs);
+      break;
     case "plano":
       _bkApplyPlano(dest, data, modo, sameBazaar);
       break;

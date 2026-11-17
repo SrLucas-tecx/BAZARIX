@@ -747,6 +747,8 @@ async function duplicarBazaar() {
   (copy.expositores || []).forEach((exp) => { exp.historial = []; });
   (copy.tareas || []).forEach((t) => { t.hecho = false; });
   (copy.compras || []).forEach((c) => { c.comprado = false; });
+  copy.cajaMovs = [];   // las cajas empiezan en cero en la copia
+  (copy.extras || []).forEach((x) => { x.estado = "planeada"; x.conteo = { denoms: {}, at: "", nota: "" }; x.cajaCerrada = false; x.cajaCerradaAt = ""; });
 
   AppState.bazaars[newId] = copy;
   AppState.currentBazaarId = newId;
@@ -822,6 +824,7 @@ function renderAll() {
   renderChecklist();
   renderInvitados();
   renderMinuteByMinute();
+  renderExtras();
   renderFicha();
   renderTareas();
   renderCompras();

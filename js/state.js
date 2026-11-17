@@ -184,7 +184,33 @@ function ensureEventoFields(bz) {
     if (c.ivaIncluido === undefined) c.ivaIncluido = false;
   });
 
+  // Actividades extra (con caja opcional) y sus movimientos de caja
+  if (!Array.isArray(bz.extras)) bz.extras = [];
+  if (!Array.isArray(bz.cajaMovs)) bz.cajaMovs = [];
+  bz.extras = bz.extras.filter((x) => x && typeof x === "object");
+  bz.extras.forEach((x) => {
+    if (!x.id) x.id = `extra-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    ["nombre", "descripcion", "dia", "horaInicio", "horaFin", "lugar", "responsableId", "areaRolId", "notas", "cajaCerradaAt"].forEach((k) => { if (typeof x[k] !== "string") x[k] = ""; });
+    if (!x.tipo) x.tipo = "Otro";
+    if (!["planeada", "enCurso", "terminada", "cancelada"].includes(x.estado)) x.estado = "planeada";
+    x.genera = Boolean(x.genera);
+    x.cajaCerrada = Boolean(x.cajaCerrada);
+    ["precioUnit", "metaIngreso", "fondoInicial"].forEach((k) => { x[k] = Math.max(0, Number(x[k]) || 0); });
+    if (!x.conteo || typeof x.conteo !== "object") x.conteo = {};
+    if (!x.conteo.denoms || typeof x.conteo.denoms !== "object") x.conteo.denoms = {};
+    if (typeof x.conteo.at !== "string") x.conteo.at = "";
+    if (typeof x.conteo.nota !== "string") x.conteo.nota = "";
+  });
+  bz.cajaMovs = bz.cajaMovs.filter((m) => m && typeof m === "object");
+  bz.cajaMovs.forEach((m) => {
+    if (!m.id) m.id = `mov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    m.tipo = m.tipo === "egreso" ? "egreso" : "ingreso";
+    m.monto = Math.max(0, Number(m.monto) || 0);
+    ["extraId", "concepto", "ts"].forEach((k) => { if (typeof m[k] !== "string") m[k] = ""; });
+  });
+
   (bz.minuteByMinute || []).forEach((row) => {
+    if (row.extraId === undefined) row.extraId = "";   // vínculo con una actividad extra
     if (row.lugar === undefined) row.lugar = "";
     if (row.horaFin === undefined) row.horaFin = "";
     if (row.dia === undefined) row.dia = "";   // id de bz.evento.dias; "" = todos los días

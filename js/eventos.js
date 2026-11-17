@@ -156,7 +156,7 @@ function renderMinuteByMinute() {
           style="font-weight:700;color:${duration === "—" ? "var(--color-danger)" : "var(--color-accent)"};cursor:default;"
           title="${duration === "—" ? "La hora fin es anterior a la de inicio" : "Calculada automáticamente"}">
       </td>
-      <td><input class="form-input" value="${escapeHTML(row.activity)}" onchange="updateMinuteRow('${row.id}','activity',this.value)"></td>
+      <td><input class="form-input" value="${escapeHTML(row.activity)}" onchange="updateMinuteRow('${row.id}','activity',this.value)">${row.extraId ? `<button type="button" class="link-inline extra-link" onclick="openModalExtra('${escapeHTML(row.extraId)}')" title="Abrir la ficha de la actividad extra">⭐ Actividad extra</button>` : ""}</td>
       <td><input class="form-input" value="${escapeHTML(row.lugar || "")}" placeholder="Ej. Auditorio" onchange="updateMinuteRow('${row.id}','lugar',this.value)"></td>
       <td>${responsableCellHTML("minuto", row, bz)}</td>
       <td>${notePreviewHTML(row.notes, "actividad", row.id)}</td>
