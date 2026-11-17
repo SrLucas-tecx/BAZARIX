@@ -1,4 +1,4 @@
-# Conectar BAZARIX a una hoja de Google (modo Equipo) — versión 3
+# Conectar BAZARIX a una hoja de Google (modo Equipo) — versión 4
 
 Lo hace **una sola persona por grupo: el dueño de la hoja**. Después todo el equipo entra con **códigos**.
 Tarda ~10 minutos.
@@ -48,7 +48,18 @@ Tarda ~10 minutos.
 - **Si dos personas editan lo mismo a la vez:** gana el **rango mayor**; con rango igual, quien llegó primero.
 - **Todo se valida en el servidor.** Si alguien sin permiso intenta cambiar algo, el servidor lo rechaza y la app deshace ese cambio con un aviso.
 
-## 7. Cómo funciona (resumen)
+## 7. Cambios en vivo
+- Cada dispositivo pregunta cada pocos segundos **solo "¿hay algo nuevo?"** (una consulta barata). Si sí, baja únicamente lo nuevo.
+- El ritmo se adapta: **4 s** con movimiento reciente, **10 s** tras 1 minuto tranquilo, **20 s** tras 5 minutos y **60 s** con la pestaña oculta. Al volver a la pestaña se pone al día de inmediato.
+- Si alguien cambia tu rol o te quita de un bazar, **lo notas en la siguiente consulta**, sin reiniciar la app.
+- **La pantalla no se redibuja mientras escribes o arrastras una mesa**: los cambios ajenos se aplican en cuanto sueltas. Se redibuja solo la pantalla que estás viendo y las demás se actualizan al entrar a ellas.
+- Según tu rol, la app **oculta o bloquea** lo que no puedes hacer y muestra tu rol junto al selector de bazar. El plano queda en solo lectura si tu rol no puede editarlo.
+- En ⚙️ → Miembros y roles se ve quién está **activo ahora** (🟢) y cuándo entró cada quien por última vez.
+- Google no publica un tope fijo de peticiones por día para aplicaciones web, pero sí limita ejecuciones simultáneas y tiempo total. La consulta es muy ligera y baja de ritmo sola cuando no hay actividad; con equipos grandes (decenas de personas activas a la vez) puede notarse lentitud.
+
+> **Si vienes de la versión 3:** vuelve a pegar `Core.gs`, publica **versión nueva** de la implementación y recarga la app. `Sheet.gs` no cambió.
+
+## 8. Cómo funciona (resumen)
 - Cada expositor, tarea, mesa, movimiento de caja… es **una fila** en `Datos` con su versión y el rango de quien la editó.
 - La app guarda **primero en tu dispositivo** y sube en segundo plano solo lo que cambió. Sin internet no se pierde nada.
 - **Cada bazar está aislado:** solo lo ven sus miembros (y el dueño). Los catálogos (categorías, características, expositores guardados) son del equipo y solo los editan los administradores.

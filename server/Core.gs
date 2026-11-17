@@ -15,11 +15,14 @@
  *   · Quien crea un bazar es su ADMIN. Quien se une entra como VISTA (solo lectura) salvo que el código traiga otro rol.
  *   · El admin crea roles personalizados con permisos y rango. TODO se valida aquí, no en la pantalla.
  *
- * Operaciones: ping · redeem · me · pull · push · claimBazaar · invite · ownerCode · codes · revokeCode ·
+ * Sincronización en vivo (sprint 4): "rev" es una consulta barata (solo lee dos contadores): REV sube con cada escritura de datos y
+ * MEMREV con cada cambio de miembros o roles. Los clientes la consultan cada pocos segundos y solo hacen "pull" si algo cambió.
+ *
+ * Operaciones: ping · redeem · me · rev · pull · push · claimBazaar · invite · ownerCode · codes · revokeCode ·
  *              members · setRole · removeMember · saveRole · deleteRole
  * Interfaz del store: withLock(fn) getProp setProp index() rowsSince(rev) get(keys) write(items) table(name) [now() random(n)]
  */
-var BZX_VERSION_ = "3.0";
+var BZX_VERSION_ = "4.0";
 var BZX_COLLECTIONS_ = { categorias: 1, caracteristicas: 1, plantillas: 1, bazares: 1, costos: 1, expositores: 1, pisos: 1, mesas: 1,
   tareas: 1, compras: 1, invitados: 1, actividades: 1, responsables: 1, roles: 1, gastos: 1, extras: 1, cajamovs: 1 };
 var BZX_GLOBAL_ = { categorias: 1, caracteristicas: 1, plantillas: 1 };   // catálogos compartidos por todo el equipo
@@ -233,7 +236,7 @@ function bzxAuth_(store, body) {
     for (var i = 0; i < all.length; i++) if (all[i].tokenHash === h) { u = all[i]; break; }
     if (u && u.estado === "activo") {
       var now = bzxNow_(store);
-      if (!u.visto || now.getTime() - new Date(u.visto).getTime() > 60000) { u.visto = now.toISOString(); users.put(u); }
+      if (!u.visto || now.getTime() - new Date(u.visto).getTime() > 30000) { u.visto = now.toISOString(); users.put(u); }
       return { ok: true, user: { id: u.id, nombre: u.nombre, owner: false, creditos: Number(u.creditos) || 0 } };
     }
   }
@@ -310,7 +313,7 @@ function bzxPull_(store, body, acc) {
     if (acc.owner) return true;
     return b === "" ? !!BZX_GLOBAL_[r.coleccion] : !!acc.bazars[b];
   }).map(bzxPublicRow_);
-  return { ok: true, rev: Number(store.getProp("REV") || 0), rows: rows, access: acc.owner ? null : Object.keys(acc.bazars) };
+  return { ok: true, rev: Number(store.getProp("REV") || 0), memRev: Number(store.getProp("MEMREV") || 0), rows: rows, access: acc.owner ? null : Object.keys(acc.bazars) };
 }
 
 function bzxPush_(store, body, user, acc) {
@@ -428,6 +431,7 @@ function bzxRedeem_(store, body) {
   }
   if (rec.tipo === "unirse") {
     members.put({ id: user.id + ":" + rec.bazarId, userId: user.id, bazarId: rec.bazarId, rol: rec.rol, desde: now.toISOString() });
+    bzxBumpMem_(store);
     rec.usos = (Number(rec.usos) || 0) - 1;
   } else {                                                     // código para crear bazares: da "créditos" (un bazar por crédito)
     var u = usersT.all().filter(function (x) { return x.id === user.id; })[0];
@@ -442,6 +446,9 @@ function bzxRedeem_(store, body) {
   if (token) out.token = token;
   return out;
 }
+
+/** Cambió quién es miembro o qué puede hacer: los clientes lo notan en su siguiente consulta y recargan su acceso. */
+function bzxBumpMem_(store) { store.setProp("MEMREV", String((Number(store.getProp("MEMREV")) || 0) + 1)); }
 
 function bzxAdminOnly_(acc, bazarId) {
   return bzxIsAdmin_(acc, bazarId) ? null : bzxFail_("FORBIDDEN", "Solo un administrador del bazar puede hacer esto");
@@ -471,6 +478,7 @@ function bzxDispatch_(store, body, op) {
   switch (op) {
     case "ping": return { ok: true, auth: true, rev: Number(store.getProp("REV") || 0), equipo: store.getProp("TEAM_NAME") || "", version: BZX_VERSION_, owner: !!user.owner, nombre: user.nombre };
     case "me": return { ok: true, me: bzxMe_(store, user, acc) };
+    case "rev": return { ok: true, rev: Number(store.getProp("REV") || 0), memRev: Number(store.getProp("MEMREV") || 0) };
     case "pull": return bzxPull_(store, body, acc);
     case "push": return bzxPush_(store, body, user, acc);
 
@@ -484,6 +492,7 @@ function bzxDispatch_(store, body, op) {
         usersT.put(u);
         user.creditos = u.creditos;
         store.table("Miembros").put({ id: user.id + ":" + bazarId, userId: user.id, bazarId: bazarId, rol: "admin", desde: bzxNow_(store).toISOString() });
+        bzxBumpMem_(store);
         acc = bzxAccess_(store, user);
       }
       return { ok: true, me: bzxMe_(store, user, acc) };
@@ -525,7 +534,7 @@ function bzxDispatch_(store, body, op) {
         var u = users.filter(function (x) { return x.id === m.userId; })[0] || {};
         var info = bzxRoleInfo_(store, bazarId, m.rol) || { nombre: "Vista", rank: 0 };
         return { userId: m.userId, nombre: u.nombre || "(desconocido)", rol: m.rol, rolNombre: info.nombre, rank: info.rank, desde: m.desde, visto: u.visto || "",
-          activo: !!u.visto && nowMs - new Date(u.visto).getTime() < 45000 };
+          activo: !!u.visto && nowMs - new Date(u.visto).getTime() < 100000 };
       });
       return { ok: true, members: members };
     }
@@ -539,6 +548,7 @@ function bzxDispatch_(store, body, op) {
       if (target.rol === "admin" && newRol !== "admin" && bzxAdminCount_(store, bazarId) <= 1) return bzxFail_("LAST_ADMIN", "Debe quedar al menos un administrador");
       target.rol = newRol;
       store.table("Miembros").put(target);
+      bzxBumpMem_(store);
       return { ok: true };
     }
     case "removeMember": {
@@ -548,6 +558,7 @@ function bzxDispatch_(store, body, op) {
       if (!t2) return bzxFail_("NOT_FOUND", "Miembro no encontrado");
       if (t2.rol === "admin" && bzxAdminCount_(store, bazarId) <= 1) return bzxFail_("LAST_ADMIN", "Debe quedar al menos un administrador");
       store.table("Miembros").del(t2.id);
+      bzxBumpMem_(store);
       return { ok: true };
     }
     case "saveRole": {
@@ -564,6 +575,7 @@ function bzxDispatch_(store, body, op) {
       if (existing.some(function (r) { return r.id !== id && r.nombre.toLowerCase() === nombreR.toLowerCase(); })) return bzxFail_("EXISTS", "Ya hay un rol con ese nombre");
       var role = { id: id || "rol-" + bzxRandHex_(store, 6), bazarId: bazarId, nombre: nombreR, color: color, rank: bzxIntIn_(body.rank, 1, 99, 10), permisos: JSON.stringify(perms) };
       rT.put(role);
+      bzxBumpMem_(store);
       return { ok: true, role: { id: role.id, bazarId: bazarId, nombre: nombreR, color: color, rank: role.rank, permisos: perms } };
     }
     case "deleteRole": {
@@ -574,6 +586,7 @@ function bzxDispatch_(store, body, op) {
       var mT = store.table("Miembros"), moved = 0;
       mT.all().forEach(function (m) { if (m.bazarId === bazarId && m.rol === role2.id) { m.rol = "vista"; mT.put(m); moved++; } });
       rT2.del(role2.id);
+      bzxBumpMem_(store);
       return { ok: true, miembrosAVista: moved };
     }
   }

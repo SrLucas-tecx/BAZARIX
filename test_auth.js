@@ -210,3 +210,37 @@ async function run(kind) {
   for (const kind of ["memory", "sheet"]) { console.log(`\n── ${kind === "memory" ? "almacén en memoria" : "hoja de Google simulada"} ──`); await run(kind); }
   console.log("\nTODO OK");
 })().catch((e) => { console.error("\nFALLA:", e); process.exit(1); });
+
+// ── Sprint 4: consulta barata de cambios y contador de miembros ──
+(async () => {
+  for (const kind of ["memory", "sheet"]) {
+    const S = makeServer(kind), c = S.call, t = (n) => console.log(`  ✓ ${kind}: ${n}`);
+    assert.equal(c({ op: "rev" }).code, "UNAUTHORIZED");
+    const r0 = c({ op: "rev", ...OWNER });
+    assert.deepEqual([r0.ok, r0.rev, r0.memRev], [true, 0, 0]);
+    const cc = c({ op: "ownerCode", ...OWNER }).code;
+    const ana = c({ op: "redeem", code: cc, nombre: "Ana" });
+    c({ op: "claimBazaar", token: ana.token, bazarId: BZ });
+    const afterClaim = c({ op: "rev", token: ana.token });
+    assert.equal(afterClaim.memRev, 1, "crear un bazar cambia el contador de miembros");
+    assert.equal(afterClaim.rev, 0, "pero no el de datos");
+    c({ op: "push", token: ana.token, changes: [ch(`bazares:${BZ}`, { id: BZ })] });
+    assert.equal(c({ op: "rev", token: ana.token }).rev, 1, "escribir datos sube el contador de datos");
+    const inv = c({ op: "invite", token: ana.token, bazarId: BZ });
+    const beto = c({ op: "redeem", code: inv.code, nombre: "Beto" });
+    assert.equal(c({ op: "rev", ...OWNER }).memRev, 2, "unirse lo sube");
+    c({ op: "setRole", token: ana.token, bazarId: BZ, userId: beto.me.user.id, rol: "admin" });
+    assert.equal(c({ op: "rev", ...OWNER }).memRev, 3, "cambiar un rol lo sube");
+    const rl = c({ op: "saveRole", token: ana.token, bazarId: BZ, nombre: "X", permisos: [] });
+    c({ op: "deleteRole", token: ana.token, bazarId: BZ, id: rl.role.id });
+    c({ op: "removeMember", token: ana.token, bazarId: BZ, userId: beto.me.user.id });
+    assert.equal(c({ op: "rev", ...OWNER }).memRev, 6, "crear/borrar rol y quitar miembro también");
+    assert.equal(c({ op: "pull", ...OWNER, sinceRev: 0 }).memRev, 6, "el pull también informa el contador");
+    assert.equal(c({ op: "rev", ...OWNER }).rev, 1, "las consultas no cambian nada");
+    // presencia: quien consulta queda "activo"
+    const members = c({ op: "members", token: ana.token, bazarId: BZ }).members;
+    assert.equal(members.find((m) => m.nombre === "Ana").activo, true);
+    t("rev: contadores de datos y de miembros (barato, solo lectura) y presencia");
+  }
+  console.log("\nTODO OK (sprint 4)");
+})().catch((e) => { console.error("\nFALLA:", e); process.exit(1); });

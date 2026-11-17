@@ -802,6 +802,7 @@ function updateAppMode() {
 
 function renderAll() {
   updateAppMode();
+  if (typeof applyRoleGate === "function") applyRoleGate();   // modo Equipo: oculta lo que tu rol no puede hacer
   renderBazaarSelector();
   renderBazaarHome();
   renderBazaresTabla();

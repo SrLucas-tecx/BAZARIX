@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="Styles.css">
   <link rel="stylesheet" href="plano.css">
   <link rel="stylesheet" href="responsive.css">
+  <link rel="stylesheet" href="permisos.css">
   <!-- Layout y estilos en Styles.css -->
 </head>
 <body class="dark">
@@ -57,7 +58,7 @@
 
     <!-- Nivel 2: navegación del bazar abierto (oculta si no hay bazar) -->
     <nav class="sidebar-nav nav-bazaar" id="bazaar-nav" aria-label="Navegación del bazar">
-      <div class="nav-bazaar-label"><label for="nav-bazaar-select">Bazar:</label> <select id="nav-bazaar-select" class="nav-bazaar-select" onchange="onNavBazaarChange(this.value)" aria-label="Cambiar de bazar"></select></div>
+      <div class="nav-bazaar-label"><label for="nav-bazaar-select">Bazar:</label> <select id="nav-bazaar-select" class="nav-bazaar-select" onchange="onNavBazaarChange(this.value)" aria-label="Cambiar de bazar"></select> <span id="role-badge" class="dias-badge role-badge" hidden></span></div>
       <button class="nav-item active" onclick="switchTab('ficha')">📝 Panel del bazar</button>
       <button class="nav-item" onclick="switchTab('expositores')">👥 Expositores</button>
       <div class="nav-group" data-group-color="purple">
@@ -2698,6 +2699,7 @@
 <script src="js/compras.js"></script>
 <script src="js/extras.js"></script>
 <script src="js/equipo.js"></script>
+<script src="js/permisos.js"></script>
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>

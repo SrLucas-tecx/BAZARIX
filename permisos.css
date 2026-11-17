@@ -1,0 +1,57 @@
+/* ═══════════════════════════════════════════════════════════════
+   BAZARIX — permisos.css (Sprint 4)  · cargar DESPUÉS de responsive.css
+   Según tu rol, js/permisos.js pone clases "deny-<área>" en <body> y aquí se ocultan o bloquean los controles
+   que no puedes usar. Es solo comodidad: el servidor rechaza igual cualquier cambio sin permiso.
+═══════════════════════════════════════════════════════════════ */
+
+/* Expositores */
+body.deny-exp :is([onclick^="openModalExpositor"], [onclick^="deleteExpositor"], [onclick^="toggleExpositorBan"], [onclick^="openPickerGuardados"],
+  [onclick^="usarPlantilla"], [onclick^="agregarPlantillaABazar"], .avatar-edit-btn) { display: none !important; }
+body.deny-exp .publication-status { pointer-events: none; }
+body.deny-pay [onclick^="togglePaymentStatus"] { display: none !important; }
+body.deny-check #modal-checklist :is(.switch, .checklist-text-input, .btn-danger, .btn-primary, #checklist-new-item) { pointer-events: none; opacity: .55; }
+
+/* Plano y asistencia */
+body.deny-plano :is([onclick^="addTableToCore"], [onclick^="addMapElement"], [onclick^="deleteSelectedMapObject"], [onclick^="resetBazaarCanvas"],
+  [onclick^="duplicateCurrentFloor"], [onclick^="addFloor"], [onclick^="renameCurrentFloor"], [onclick^="deleteCurrentFloor"], [onclick^="autoNumberTables"],
+  [onclick^="rotateSelectedTable"], [onclick^="rotateFloorPlan"], [onclick^="moveFloorPlan"], [onclick^="openModalTableEdit"], [onclick^="deleteTable"],
+  [onclick^="clearAllZones"], [onclick^="confirmDeleteZone"], .btn-table-edit, #floor-dia-wrap, [data-mode="imgEdit"], [data-mode="zone"],
+  .ribbon-tab[data-rt="imagen"], .canvas-toolbar-group[data-rt="imagen"]) { display: none !important; }
+body.deny-plano :is(#map-pixels-per-meter, #map-orientation, #zones-list) { pointer-events: none; opacity: .6; }
+body.deny-asist [onclick^="setTableAttendance"] { display: none !important; }
+body.deny-asist [onchange^="setTableAttendance"] { pointer-events: none; opacity: .55; }
+
+/* Lista de asistencia de expositores */
+body.deny-inv :is([onclick^="openModalInvitado"], [onclick^="deleteInvitado"]) { display: none !important; }
+body.deny-invtoggle label.switch:has(input[onchange^="toggleInv"]) { pointer-events: none; opacity: .55; }
+
+/* Dinero */
+body.deny-costos #sec-costos :is(input, select, .switch) { pointer-events: none; opacity: .6; }
+body.deny-costos :is([onclick^="addExtraCostRow"], [onclick^="removeExtraCostRow"], [onclick^="applyGlobalTablePricesToExpositores"], [onclick^="toggleGlobalPrices"],
+  [onclick^="toggleMobiliarioConjunto"], [onclick^="enviarCompraAPresupuesto"], [onclick^="enviarComprasAPresupuesto"]) { display: none !important; }
+body.deny-caja :is(#caja-add-btn, #caja-quick, .caja-add, [onclick^="deleteCajaMov"]) { display: none !important; }
+
+/* Actividades extra */
+body.deny-extras :is([onclick="openModalExtra()"], [onclick^="deleteExtra"], [onclick^="saveCajaConteo"], #caja-cierre-btn, #form-extra button[type="submit"]) { display: none !important; }
+body.deny-extras :is(.extra-estado, #caja-denoms, #caja-conteo-nota) { pointer-events: none; opacity: .6; }
+body.deny-act [onclick^="toggleExtraMinuto"] { display: none !important; }
+
+/* Planeación */
+body.deny-staff :is([onclick^="openModalResponsable"], [onclick^="deleteResponsable"], [onclick^="openModalRol"], [onclick^="deleteRol"], .role-chip button) { display: none !important; }
+body.deny-tareas :is([onclick^="addTarea"], [onclick^="deleteTarea"]) { display: none !important; }
+body.deny-tareas #tareas-list :is(input, select, .note-preview) { pointer-events: none; opacity: .7; }
+body.deny-compras :is([onclick^="addCompra"], [onclick^="deleteCompra"]) { display: none !important; }
+body.deny-compras #compras-list :is(input, select, .switch, .note-preview) { pointer-events: none; opacity: .7; }
+body.deny-act :is([onclick^="addMinuteRow"], [onclick^="deleteMinuteRow"]) { display: none !important; }
+body.deny-act #minute-by-minute-list :is(input, select, .note-preview) { pointer-events: none; opacity: .7; }
+
+/* Ficha del bazar y administración */
+body.deny-ficha :is(#btn-toggle-ficha, [onclick^="editarFichaBazar"], [onclick^="openBazaarColorModal"], label.backup-menu-item) { display: none !important; }
+body.deny-admin :is([onclick^="deleteBazaarById"], [onclick^="duplicarBazaar"]) { display: none !important; }
+
+/* Catálogos del equipo: solo administradores */
+body.deny-catalogos :is([onclick^="openModalCategoria"], [onclick^="deleteCategoria"], [onclick^="deleteCaracteristica"], [onclick^="addSuggestedCatalog"],
+  [onclick^="eliminarPlantilla"], [onclick^="guardarComoPlantilla"], #category-add-btn) { display: none !important; }
+
+/* Insignia con tu rol, junto al selector de bazar */
+.role-badge { margin-left: var(--space-2); white-space: nowrap; }

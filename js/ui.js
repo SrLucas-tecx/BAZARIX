@@ -5,6 +5,8 @@
  */
 
 function switchTab(tabId) {
+  if (typeof teamFlushStale === "function") teamFlushStale();   // modo Equipo: ponerse al día con cambios ajenos
+
   // Sin bazar abierto solo existen las pantallas globales.
   if (!getActiveBazaar() && !GLOBAL_TABS.includes(tabId)) tabId = "inicio";
   document.body.dataset.tab = tabId;

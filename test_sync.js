@@ -60,7 +60,9 @@ function makeDevice(server, { failing = false, auth = { key: "k" }, prompt = nul
     showToast: (m) => ctx.__toasts.push(m), appConfirm: async () => true, appPrompt: async () => (prompt ? prompt() : null),
   });
   ctx.__auth = auth;
+  ctx.__ops = [];
   ctx.__call = async (op, extra) => {
+    ctx.__ops.push(op);
     if (ctx.__fail) throw new Error("sin red");
     const res = server.call({ op, ...extra, ...ctx.__auth });
     if (!res.ok) { const e = new Error(res.error); e.code = res.code; e.fatal = res.code === "UNAUTHORIZED"; throw e; }
@@ -342,6 +344,115 @@ async function teamScenario(kind) {
   t("al quitar a un miembro, el bazar se retira de su dispositivo");
 }
 
+// ── Sprint 4: sincronización en vivo y redibujado con cuidado ──
+async function liveScenario(kind) {
+  const server = makeServer(kind);
+  const t = (name) => console.log(`  ✓ ${kind}: ${name}`);
+  const A = makeDevice(server), B = makeDevice(server);
+  seed(A); await A.sync(); await B.sync();
+  const tareaB = (campo) => B.json(`AppState.bazaars['${BZ}'].tareas[0].${campo}`);
+
+  B.ctx.__ops.length = 0;
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(B.ctx.__ops, ["rev"], "sin novedades solo hace la consulta barata");
+  t("sin novedades solo se hace la consulta barata (no se baja nada)");
+
+  A.run(`AppState.bazaars['${BZ}'].tareas[0].hecho = true; saveState();`); await A.flush();
+  B.ctx.__ops.length = 0;
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(B.ctx.__ops, ["rev", "pull"]);
+  assert.equal(tareaB("hecho"), true);
+  assert.equal(B.run("Sync.status"), "saved", "la consulta silenciosa no parpadea el indicador");
+  t("un cambio ajeno llega solo, en la siguiente consulta");
+
+  B.run(`AppState.bazaars['${BZ}'].tareas[0].descripcion = 'mía'; saveState();`);
+  B.ctx.__ops.length = 0;
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(B.ctx.__ops, [], "con cambios propios sin subir no consulta (ya sube flush)");
+  await B.flush();
+  t("con cambios propios pendientes no se consulta");
+
+  // El ritmo se adapta
+  B.run("TeamAdapter.lastActivity = Date.now()");
+  assert.equal(B.run("TeamAdapter.pollInterval()"), 4000);
+  B.run("TeamAdapter.lastActivity = Date.now() - 120000");
+  assert.equal(B.run("TeamAdapter.pollInterval()"), 10000);
+  B.run("TeamAdapter.lastActivity = Date.now() - 400000");
+  assert.equal(B.run("TeamAdapter.pollInterval()"), 20000);
+  B.ctx.document = { hidden: true, activeElement: null, body: { dataset: { tab: "tareas" } }, getElementById: () => null };
+  assert.equal(B.run("TeamAdapter.pollInterval()"), 60000, "con la pestaña oculta, cada minuto");
+  B.ctx.document.hidden = false;
+  t("el ritmo se adapta: 4 s activo, 10 s, 20 s y 60 s con la pestaña oculta");
+
+  // Redibujado: no interrumpe lo que escribes
+  const renders = [];
+  B.ctx.renderAll = () => renders.push("all");
+  B.ctx.renderTareas = () => renders.push("tareas");
+  B.ctx.document.activeElement = { tagName: "INPUT", type: "text", closest: (s) => (s === ".page-section" ? {} : null) };
+  await A.pull();                                        // A se pone al día (si no, editaría sobre una versión vieja y chocaría)
+  A.run(`AppState.bazaars['${BZ}'].tareas[0].avance = 'a1'; saveState();`); await A.flush();
+  await B.run("TeamAdapter.tick()");
+  assert.equal(tareaB("avance"), "a1", "el dato SÍ se aplica");
+  assert.deepEqual(renders, [], "pero la pantalla no se redibuja mientras escribes");
+  assert.equal(B.run("TeamAdapter._deferred"), true);
+  B.ctx.document.activeElement = null;
+  B.run("TeamAdapter.runDeferred()");
+  assert.deepEqual(renders, ["tareas"], "al dejar de escribir se redibuja solo la pantalla visible");
+  assert.equal(B.run("TeamAdapter._stale"), true);
+  B.run("teamFlushStale()");
+  assert.deepEqual(renders, ["tareas", "all"], "las demás pantallas se ponen al día al entrar a ellas");
+  t("no se redibuja mientras escribes; después solo la pantalla visible y el resto al entrar");
+
+  renders.length = 0;
+  B.ctx.document.activeElement = { tagName: "INPUT", type: "search", closest: (s) => (s === ".page-section" || s.includes(".filter-bar") ? {} : null) };
+  await A.pull();                                        // A se pone al día (si no, editaría sobre una versión vieja y chocaría)
+  A.run(`AppState.bazaars['${BZ}'].tareas[0].avance = 'a2'; saveState();`); await A.flush();
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(renders, ["tareas"], "escribir en una barra de filtros no bloquea el redibujado");
+  t("la barra de búsqueda y las ventanas no bloquean el redibujado");
+
+  renders.length = 0;
+  B.ctx.bazaarCanvas = { isDraggingTable: true };
+  await A.pull();                                        // A se pone al día (si no, editaría sobre una versión vieja y chocaría)
+  A.run(`AppState.bazaars['${BZ}'].tareas[0].avance = 'a3'; saveState();`); await A.flush();
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(renders, [], "arrastrando una mesa tampoco se redibuja");
+  B.ctx.bazaarCanvas = { isDraggingTable: false };
+  B.run("TeamAdapter.runDeferred()");
+  assert.deepEqual(renders, ["tareas"]);
+  t("tampoco mientras arrastras en el plano");
+
+  renders.length = 0;
+  A.run(`AppState.bazaars['${BZ}'].responsables.push({ id: 'resp-9', nombre: 'Nuevo', rolId: '', tel: '', email: '' }); saveState();`); await A.flush();
+  await B.run("TeamAdapter.tick()");
+  assert.deepEqual(renders, ["all"], "un cambio estructural (staff) redibuja todo");
+  t("un cambio estructural redibuja todo");
+
+  // El rol cambia en vivo y quitar a alguien lo saca en vivo
+  const inv = server.call({ op: "invite", key: "k", bazarId: BZ, rol: "vista" });
+  const beto = server.call({ op: "redeem", code: inv.code, nombre: "Beto" });
+  const M = makeDevice(server, { auth: { token: beto.token } });
+  await M.sync();
+  assert.equal(M.run(`teamCan('payments:set', '${BZ}')`), false);
+  const role = server.call({ op: "saveRole", key: "k", bazarId: BZ, nombre: "Cajero", rank: 20, permisos: ["payments:set"] });
+  server.call({ op: "setRole", key: "k", bazarId: BZ, userId: beto.me.user.id, rol: role.role.id });
+  M.ctx.__ops.length = 0;
+  await M.run("TeamAdapter.tick()");
+  assert.deepEqual(M.ctx.__ops, ["rev", "pull", "me"], "cambia el acceso: se baja y se recarga quién eres");
+  assert.equal(M.run(`teamCan('payments:set', '${BZ}')`), true, "el nuevo rol aplica sin reiniciar");
+  server.call({ op: "removeMember", key: "k", bazarId: BZ, userId: beto.me.user.id });
+  await M.run("TeamAdapter.tick()");
+  assert.equal(M.json(`!!AppState.bazaars['${BZ}']`), false, "si te quitan, el bazar sale de tu pantalla en la siguiente consulta");
+  t("un cambio de rol o de miembros se nota en la siguiente consulta, sin reiniciar");
+
+  // Una consulta que falla no rompe nada
+  B.ctx.__fail = true;
+  await B.run("TeamAdapter.tick()");
+  assert.notEqual(B.run("Sync.status"), "error", "un fallo de red en la consulta no asusta al usuario");
+  B.ctx.__fail = false;
+  t("un fallo de red en la consulta se ignora y se reintenta");
+}
+
 async function serverTests(kind) {
   const server = makeServer(kind);
   const c = server.call;
@@ -411,6 +522,7 @@ async function serverTests(kind) {
     await serverTests(kind);
     await scenario(kind);
     await teamScenario(kind);
+    await liveScenario(kind);
   }
   console.log("\nTODO OK");
   process.exit(0);

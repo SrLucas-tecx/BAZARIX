@@ -225,6 +225,17 @@ class BazaarCanvasManager {
     this.draggedZone = null;
     this.isPanning = false;
 
+    // Solo lectura (rol sin permiso de plano): se puede mover la vista, no el contenido
+    if (document.body.classList.contains("deny-plano")) {
+      if (this.mode === "select") {
+        this.isPanning = true;
+        this.startMouseX = rawX - this.panX;
+        this.startMouseY = rawY - this.panY;
+        this.canvas.style.cursor = "grabbing";
+      }
+      return;
+    }
+
     // ── MODO: Editar imagen de fondo ──────────────────────────────
     if (this.mode === "imgEdit") {
       const floor = getActiveFloor(this.getCurrentBazaar());
@@ -536,6 +547,7 @@ class BazaarCanvasManager {
   }
 
   handleDoubleClick(e) {
+    if (document.body.classList.contains("deny-plano")) return;   // solo lectura: no se editan mesas
     const { worldX, worldY } = this.getCanvasCoords(e);
 
     // Modo zona: doble clic cierra la zona en construcción

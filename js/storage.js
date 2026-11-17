@@ -148,6 +148,13 @@ const TeamAdapter = {
   started: false,
   _timer: null,
   _meta: null,
+  lastActivity: Date.now(),   // última vez que hubo movimiento (mío o ajeno): define qué tan seguido se consulta
+  _pollTimer: null,
+  _polling: false,
+  _deferred: false,           // hay cambios ajenos esperando a que dejes de escribir para dibujarse
+  _deferredAt: 0,
+  _deferredFull: false,
+  _stale: false,              // otras pantallas quedaron desactualizadas: se redibujan al entrar a ellas
 
   tx() { return this.transport || (this.transport = makeTransport()); },
 
@@ -174,6 +181,7 @@ const TeamAdapter = {
       return false;
     }
     this.dirty = true;
+    this.lastActivity = Date.now();
     Sync.set(navigator.onLine === false ? "offline" : "pending");
     this.schedule(this.debounceMs);
     return true;
@@ -267,13 +275,13 @@ const TeamAdapter = {
     });
     this.persistCache();
     this.saveMeta();
-    this.refreshUI();
+    this.refreshUI(rows.some((r) => FULL_REFRESH.has(r.coleccion)));
   },
 
   /** Baja lo nuevo del servidor. Lo que tengas sin subir NO se pisa (se resuelve al subir). */
-  async pull() {
+  async pull(quiet) {
     const meta = this.meta();
-    Sync.set("syncing");
+    if (!quiet) Sync.set("syncing");
     const res = await this.tx().pull(meta.rev, this.knownBazaars());
     this.normalize();
     const pending = new Set(RowSync.diff(RowSync.stateToRows(AppState), meta.base).map((c) => c.key));
@@ -281,13 +289,51 @@ const TeamAdapter = {
     if (rows.length) this.applyRemote(rows);
     this.pruneBazaars(res.access);
     meta.rev = Math.max(meta.rev, res.rev);
+    const memChanged = res.memRev !== undefined && (Number(res.memRev) || 0) !== (Number(meta.memRev) || 0);
+    meta.memRev = Number(res.memRev) || 0;
     this.saveMeta();
+    if (memChanged && this.me) {                  // cambió quién eres o qué puedes hacer: se recarga tu acceso
+      try { await this.loadMe(); this.refreshUI(true); } catch { /* se reintenta en la siguiente consulta */ }
+    }
     if (pending.size || RowSync.diff(RowSync.stateToRows(AppState), meta.base).length) {
       this.dirty = true;
       Sync.set("pending");
       this.schedule(this.debounceMs);
-    } else {
+    } else if (!quiet || Sync.status === "error" || Sync.status === "offline") {
       Sync.set("saved");
+    }
+  },
+
+  // ── Sincronización en vivo ──
+  // Cada pocos segundos se pregunta SOLO "¿hay algo nuevo?" (consulta barata); si sí, se baja. El ritmo se adapta:
+  // 4 s con movimiento reciente, 10 s después de 1 min tranquilo, 20 s después de 5 min, y 60 s con la pestaña oculta.
+  pollInterval() {
+    if (typeof document !== "undefined" && document.hidden) return 60000;
+    const idle = Date.now() - this.lastActivity;
+    return idle < 60000 ? 4000 : idle < 300000 ? 10000 : 20000;
+  },
+  startPolling() { if (this._polling) return; this._polling = true; this.schedulePoll(); },
+  stopPolling() { this._polling = false; clearTimeout(this._pollTimer); },
+  schedulePoll() {
+    clearTimeout(this._pollTimer);
+    if (this._polling) this._pollTimer = setTimeout(() => this.tick(), this.pollInterval());
+  },
+  /** Una vuelta de consulta. Con cambios tuyos sin subir o sin red no hace nada (ya se encarga flush). */
+  async tick() {
+    try {
+      this.runDeferred();
+      if (navigator.onLine === false || this.inflight || this.dirty) return;
+      const meta = this.meta();
+      const r = await this.tx().call("rev");
+      if (r.rev > meta.rev || (Number(r.memRev) || 0) !== (Number(meta.memRev) || 0)) {
+        this.lastActivity = Date.now();
+        await this.pull(true);
+      }
+    } catch (err) {
+      if (err.fatal) { this.stopPolling(); this.fail(err); }
+      else console.warn("Consulta:", err.message);
+    } finally {
+      this.schedulePoll();
     }
   },
 
@@ -310,7 +356,7 @@ const TeamAdapter = {
       this.normalize();
       this.persistCache();
       this.saveMeta();
-      this.refreshUI();
+      this.refreshUI(true);
       if (typeof showToast === "function") showToast(`Ya no tienes acceso a ${n} bazar(es); se quitaron de este dispositivo`, "error");
     }
     return n;
@@ -321,6 +367,7 @@ const TeamAdapter = {
     const res = await this.tx().call("me");
     this.me = res.me;
     try { localStorage.setItem(TEAM_ME_KEY, JSON.stringify(res.me)); } catch { /* sin espacio */ }
+    if (typeof applyRoleGate === "function") applyRoleGate();
     return res.me;
   },
 
@@ -340,7 +387,8 @@ const TeamAdapter = {
   async start() {
     if (this.started || !teamConfigured()) return;
     this.started = true;
-    try { await this.sync(); } catch { /* ya se avisó y se reintenta */ }
+    try { await this.sync(); this.startPolling(); }
+    catch (err) { if (!err.fatal) this.startPolling(); /* sin red: ya se avisó y se reintenta; la consulta sigue */ }
   },
 
   syncNow() { this.retries = 0; return this.sync(); },
@@ -352,11 +400,78 @@ const TeamAdapter = {
     AppState.searchQuery = q;
   },
 
-  refreshUI() {
-    if (typeof renderAll === "function") renderAll();
-    if (typeof syncCanvasWithState === "function" && typeof bazaarCanvas !== "undefined" && bazaarCanvas?.ctx) syncCanvasWithState();
+  /**
+   * Redibuja tras recibir cambios ajenos, SIN interrumpirte: si estás escribiendo o arrastrando en el plano, espera.
+   * full = cambió algo estructural (bazares, pisos, catálogos, staff…): se redibuja todo; si no, solo la pantalla visible.
+   */
+  refreshUI(full) {
+    if (userIsEditing() || canvasBusy()) {
+      this._deferred = true;
+      this._deferredAt = this._deferredAt || Date.now();
+      this._deferredFull = this._deferredFull || Boolean(full);
+      return;
+    }
+    this._deferred = false; this._deferredAt = 0; this._deferredFull = false;
+    this.doRefresh(Boolean(full));
+  },
+  runDeferred() {
+    if (!this._deferred || canvasBusy()) return;
+    if (userIsEditing() && Date.now() - this._deferredAt < 30000) return;   // tras 30 s se dibuja de todos modos
+    const full = this._deferredFull;
+    this._deferred = false; this._deferredAt = 0; this._deferredFull = false;
+    this.doRefresh(full);
+  },
+  doRefresh(full) {
+    if (typeof renderAll !== "function") return;
+    const tab = typeof document !== "undefined" ? document.body?.dataset?.tab : "";
+    const fns = TAB_RENDERS[tab];
+    if (full || !fns) {
+      renderAll();
+      this._stale = false;
+      if (typeof syncCanvasWithState === "function" && typeof bazaarCanvas !== "undefined" && bazaarCanvas?.ctx) syncCanvasWithState();
+    } else {
+      fns.forEach((name) => { if (typeof globalThis[name] === "function") globalThis[name](); });
+      if (tab === "mapa" && typeof bazaarCanvas !== "undefined" && bazaarCanvas?.ctx) { bazaarCanvas.loadZones(); bazaarCanvas.render(); }
+      if (typeof updateAlertBadge === "function") updateAlertBadge();
+      this._stale = true;                          // las demás pantallas se actualizan al entrar a ellas
+    }
+    if (typeof document !== "undefined" && document.getElementById("modal-caja")?.classList.contains("open") && typeof renderCaja === "function") {
+      try { renderCaja(); } catch { /* la caja ya no existe */ }
+    }
   },
 };
+
+// ── Redibujado con cuidado ──
+/** Pantalla visible → qué funciones la dibujan (el resto se redibuja al entrar a ella). */
+const TAB_RENDERS = {
+  expositores: ["renderExpositores"], ficha: ["renderFicha"], tareas: ["renderTareas"], compras: ["renderCompras"],
+  "minuto-a-minuto": ["renderMinuteByMinute"], extras: ["renderExtras"], invitados: ["renderInvitados"],
+  finanzas: ["renderFinanzasTable", "renderFinanzasStats"], costos: ["renderCostosUI"], mapa: ["renderChecklist"],
+  "dia-evento": ["renderPanelDiaEvento"], estadisticas: ["updateCharts", "renderMetricasFinancieras"], alertas: ["renderAlertas"],
+};
+/** Colecciones que afectan a muchas pantallas: si llegan, se redibuja todo. */
+const FULL_REFRESH = new Set(["bazares", "pisos", "categorias", "caracteristicas", "plantillas", "roles", "responsables", "costos"]);
+
+/** ¿La persona está escribiendo en algo que se volvería a dibujar? (barras de filtros y ventanas no cuentan). */
+function userIsEditing() {
+  if (typeof document === "undefined") return false;
+  const a = document.activeElement;
+  if (!a || a === document.body || !a.tagName) return false;
+  const tag = a.tagName;
+  const typing = tag === "TEXTAREA" || tag === "SELECT" ||
+    (tag === "INPUT" && !["checkbox", "radio", "button", "submit", "range", "color", "file"].includes(a.type));
+  return typing && Boolean(a.closest?.(".page-section")) && !a.closest(".filter-bar, .section-header, .search-bar");
+}
+/** ¿Se está arrastrando algo en el plano? */
+function canvasBusy() {
+  if (typeof bazaarCanvas === "undefined" || !bazaarCanvas) return false;
+  return Boolean(bazaarCanvas.isDraggingTable || bazaarCanvas.isDraggingElement || bazaarCanvas.isDraggingZone ||
+    bazaarCanvas.imgDragging || bazaarCanvas.imgResizing || bazaarCanvas.imgRotating || bazaarCanvas.draggingZonePoint);
+}
+/** Al cambiar de pantalla: si quedaron desactualizadas por cambios ajenos, se redibuja todo una vez. */
+function teamFlushStale() {
+  if (TeamAdapter._stale && typeof renderAll === "function") { TeamAdapter._stale = false; renderAll(); }
+}
 
 // ==========================================
 // PUNTO DE ENTRADA PARA EL RESTO DE LA APP
@@ -573,7 +688,11 @@ function bindSaveIndicator() {
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  window.addEventListener("online", () => { if (TeamAdapter.dirty) TeamAdapter.flush(); });
+  window.addEventListener("online", () => { if (TeamAdapter.dirty) TeamAdapter.flush(); else if (TeamAdapter._polling) { TeamAdapter.lastActivity = Date.now(); TeamAdapter.tick(); } });
+  document.addEventListener("visibilitychange", () => {      // al volver a la pestaña: se pone al día de inmediato
+    if (!document.hidden && TeamAdapter._polling) { TeamAdapter.lastActivity = Date.now(); clearTimeout(TeamAdapter._pollTimer); TeamAdapter.tick(); }
+  });
+  document.addEventListener("focusout", () => setTimeout(() => TeamAdapter.runDeferred(), 400));   // al dejar de escribir se dibuja lo pendiente
   window.addEventListener("offline", () => { if (TeamAdapter.dirty) Sync.set("offline"); });
   window.addEventListener("beforeunload", (e) => {
     if (StorageAdapter.mode() === "team" && Sync.hasPending()) { e.preventDefault(); e.returnValue = ""; }
