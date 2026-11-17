@@ -1,5 +1,12 @@
-BAZARIX local - paquete de CAMBIOS (copia estos archivos encima de tu proyecto, respetando carpetas)
-NUEVOS:    js/storage.js, responsive.css, test_storage.js
-CAMBIADOS: index.html, plano.css, js/state.js, js/ui.js, js/categorias.js, js/modales.js, js/canvas.js
-Probar logica de sincronizacion: node test_storage.js
-Simular fallo de subida (modo Equipo, consola): localStorage.BAZARIX_DEMO_FAIL="1"
+BAZARIX local - paquete de CAMBIOS del sprint 3 (copia encima de tu proyecto, respetando carpetas)
+
+NUEVOS:    js/equipo.js, test_auth.js, test_equipo.js
+CAMBIADOS: index.html, responsive.css, js/storage.js, js/sync_rows.js, js/team_core.js,
+           js/bazaars.js, js/backup.js, js/ui.js,
+           server/Core.gs, server/Sheet.gs, server/INSTRUCCIONES.md, test_sync.js
+
+IMPORTANTE: en Apps Script vuelve a pegar server/Core.gs y server/Sheet.gs, ejecuta BAZARIX > Preparar hoja
+            y publica una VERSION NUEVA de la implementacion (ver server/INSTRUCCIONES.md).
+js/team_core.js es COPIA de server/Core.gs: si cambias uno, copia al otro (test_sync.js lo verifica).
+
+Probar:  node test_sync.js   node test_auth.js   node test_extras.js   node test_equipo.js

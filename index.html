@@ -1756,9 +1756,10 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label" for="team-type">Tipo de conexión</label>
+        <label class="form-label" for="team-type">¿Cómo te conectas?</label>
         <select id="team-type" class="form-select" onchange="updateTeamConfigFields()">
-          <option value="sheets">Google Sheets (Apps Script)</option>
+          <option value="member">Tengo un código de invitación</option>
+          <option value="owner">Soy el dueño de la hoja (clave)</option>
           <option value="demo">Demo (simulada, sin Google)</option>
         </select>
       </div>
@@ -1766,11 +1767,26 @@
         <div class="form-group">
           <label class="form-label" for="team-url">URL de la aplicación web</label>
           <input id="team-url" class="form-input" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+          <p class="form-hint">Te la da quien administra la hoja de tu grupo.</p>
+        </div>
+      </div>
+      <div id="team-owner-fields">
+        <div class="form-group">
+          <label class="form-label" for="team-key">Clave del dueño</label>
+          <input id="team-key" class="form-input" type="password" autocomplete="off" placeholder="La muestra el menú BAZARIX de la hoja">
+          <p class="form-hint">Da control total. No la compartas: el equipo entra con códigos.</p>
+        </div>
+      </div>
+      <div id="team-member-fields">
+        <p id="team-member-note" class="form-hint" hidden></p>
+        <div class="form-group">
+          <label class="form-label" for="team-code">Código de invitación</label>
+          <input id="team-code" class="form-input" type="text" autocomplete="off" autocapitalize="characters" placeholder="BZX-XXXX-XXXX-XXXX">
+          <p class="form-hint">Entras como <strong>Vista</strong> (solo lectura) salvo que el código traiga otro rol. El administrador del bazar te asigna tu rol.</p>
         </div>
         <div class="form-group">
-          <label class="form-label" for="team-key">Clave del equipo</label>
-          <input id="team-key" class="form-input" type="password" autocomplete="off" placeholder="La muestra el menú BAZARIX de la hoja">
-          <p class="form-hint">Las fotos no se suben: quedan en el dispositivo de quien las puso.</p>
+          <label class="form-label" for="team-nombre">Tu nombre</label>
+          <input id="team-nombre" class="form-input" type="text" autocomplete="name" maxlength="60" placeholder="Así te verá tu equipo">
         </div>
       </div>
       <p id="team-demo-note" class="form-hint" hidden>La demo guarda en este navegador y sirve solo para probar el flujo (guardado, reintentos, conflictos).</p>
@@ -1781,6 +1797,18 @@
       <button type="button" class="btn-secondary" onclick="closeModal('modal-team')">Cancelar</button>
       <button type="button" class="btn-primary" onclick="saveTeamConfig()">Guardar y usar</button>
     </div>
+  </div>
+</div>
+
+<!-- # MODAL: MIEMBROS Y ROLES (modo Equipo) -->
+<div id="modal-equipo" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title">👥 Miembros y roles</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-equipo')">✕</button>
+    </div>
+    <div class="modal-body"><div id="equipo-body"></div></div>
+    <div class="modal-footer"><button type="button" class="btn-secondary" onclick="closeModal('modal-equipo')">Cerrar</button></div>
   </div>
 </div>
 
@@ -2669,6 +2697,7 @@
 <script src="js/tareas.js"></script>
 <script src="js/compras.js"></script>
 <script src="js/extras.js"></script>
+<script src="js/equipo.js"></script>
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>

@@ -680,6 +680,7 @@ async function ejecutarImportacion() {
     let newName = "";
     if (isNew) {
       const id = "bazaar-" + Date.now();
+      if (typeof teamBeforeCreateBazaar === "function" && !await teamBeforeCreateBazaar(id)) return;
       newName = document.getElementById("bi-new-name").value.trim() || `${srcBazaar.name} (importado)`;
       dest = {
         id, name: newName, bgImage: null, logoImage: null, mapConfig: defaultMapConfig(),

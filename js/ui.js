@@ -322,7 +322,9 @@ function renderSettingsMenu() {
       <div class="settings-actions">
         <button type="button" class="btn-secondary btn-sm" onclick="syncNowTeam()">🔄 Sincronizar ahora</button>
         <button type="button" class="btn-secondary btn-sm" onclick="openTeamConfig()">⚙️ Conexión…</button>
-      </div>` : ""}
+        <button type="button" class="btn-secondary btn-sm" onclick="openEquipo()">👥 Miembros y roles…</button>
+      </div>
+      <p class="form-hint">Tu rol${bz ? ` en este bazar` : ""}: <strong>${escapeHTML(teamRoleFor(bz?.id)?.rolNombre || (teamIsOwner() ? "Dueño de la hoja" : "—"))}</strong></p>` : ""}
     </div>
     ${bz ? `
     <div class="settings-section">

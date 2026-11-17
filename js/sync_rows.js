@@ -40,9 +40,10 @@ const RowSync = (() => {
   // ── Estado -> filas ──
   function stateToRows(state) {
     const rows = new Map();
-    const put = (col, id, bazarId, obj) => {
+    const put = (col, id, bazarId, obj, flat) => {
       if (!id) return;
-      const key = bazarId ? `${col}:${bazarId}:${id}` : `${col}:${id}`;   // con bazarId: dos bazares duplicados no chocan
+      // flat (bazar y costos): "<col>:<bazarId>". Resto: con bazarId, para que dos bazares duplicados no choquen.
+      const key = flat ? `${col}:${id}` : (bazarId ? `${col}:${bazarId}:${id}` : `${col}:${id}`);
       rows.set(key, { key, coleccion: col, bazarId: bazarId || "", json: sjson(obj) });
     };
     (state.categorias || []).forEach((c) => put("categorias", c.id, "", c));
@@ -54,7 +55,8 @@ const RowSync = (() => {
         logoImage, bgImage, tables, activeFloorId, extras, cajaMovs, ...meta } = bz;
       const { extraCosts, ...cfg } = costsConfig || {};
       const b = bz.id;
-      put("bazares", b, "", { ...meta, costsConfig: cfg });
+      put("bazares", b, b, meta, true);
+      put("costos", b, b, cfg, true);                       // aparte: otro permiso (costos:edit)
       (expositores || []).forEach((e) => { const r = { ...e }; DERIVED_EXP.forEach((k) => delete r[k]); put("expositores", e.id, b, r); });
       (floors || []).forEach((f) => {
         const { tables: ts, bgImage: _img, ...fr } = f;
@@ -90,9 +92,13 @@ const RowSync = (() => {
   }
 
   // ── Filas -> estado ──
+  // La clave manda: "<col>:<id>" (catálogos) · "<col>:<bazarId>" (bazar, costos) · "<col>:<bazarId>:<id>" (el resto)
+  const GLOBAL = { categorias: 1, caracteristicas: 1, plantillas: 1 };
+  const FLAT = { bazares: 1, costos: 1 };
+  const bazarFromKey = (row) => (GLOBAL[row.coleccion] ? "" : row.key.split(":")[1]);
   const idFromKey = (row) => {
-    const skip = row.coleccion.length + 1 + (row.bazarId ? row.bazarId.length + 1 : 0);
-    return row.key.slice(skip);
+    const parts = row.key.split(":");
+    return GLOBAL[row.coleccion] || FLAT[row.coleccion] ? parts.slice(1).join(":") : parts.slice(2).join(":");
   };
   const tsOf = (id) => { const m = /(\d{10,})/.exec(String(id)); return m ? Number(m[1]) : 0; };
 
@@ -139,13 +145,18 @@ const RowSync = (() => {
       if (col === "bazares") {
         if (!obj) { delete state.bazaars[id]; continue; }
         const bz = state.bazaars[id] || (state.bazaars[id] = newBazaar(id));
-        const { costsConfig, ...rest } = obj;
+        const { costsConfig, ...rest } = obj;                  // costsConfig solo llega en datos de la versión 2
         Object.assign(bz, rest);
-        bz.costsConfig = { ...(bz.costsConfig || emptyCostsConfig()), ...(costsConfig || {}), extraCosts: bz.costsConfig?.extraCosts || [] };
+        if (costsConfig) bz.costsConfig = { ...(bz.costsConfig || emptyCostsConfig()), ...costsConfig, extraCosts: bz.costsConfig?.extraCosts || [] };
+        continue;
+      }
+      if (col === "costos") {
+        const target = state.bazaars[id];
+        if (target && obj) target.costsConfig = { ...(target.costsConfig || emptyCostsConfig()), ...obj, extraCosts: target.costsConfig?.extraCosts || [] };
         continue;
       }
 
-      const bz = state.bazaars[row.bazarId];
+      const bz = state.bazaars[bazarFromKey(row)];
       if (!bz) continue;                                   // el bazar ya no existe: se ignora
       if (col === "expositores") { obj ? put(bz.expositores, id, obj, ["foto"]) : drop(bz.expositores, id); }
       else if (col === "pisos") { obj ? put(bz.floors, id, obj, ["tables", "bgImage"]) : drop(bz.floors, id); }

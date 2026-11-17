@@ -400,6 +400,7 @@ async function createBazaar() {
   const name = await appPrompt("Nombre del nuevo bazar:", "Bazar " + (Object.keys(AppState.bazaars).length + 1), "Nuevo bazar");
   if (!name?.trim()) return;
   const id = "bazaar-" + Date.now();
+  if (typeof teamBeforeCreateBazaar === "function" && !await teamBeforeCreateBazaar(id)) return;   // modo Equipo: código y rol de admin
   AppState.bazaars[id] = {
     id, name: name.trim(), createdAt: Date.now(), color: "", mesasMigradas: true,
     bgImage: null, logoImage: null, mapConfig: defaultMapConfig(),
@@ -730,6 +731,7 @@ async function duplicarBazaar() {
 
   const copy = JSON.parse(JSON.stringify(source));
   const newId = "bazaar-" + Date.now();
+  if (typeof teamBeforeCreateBazaar === "function" && !await teamBeforeCreateBazaar(newId)) return;
   const floorIdMap = {};
 
   copy.id = newId;

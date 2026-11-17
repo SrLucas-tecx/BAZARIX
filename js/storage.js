@@ -18,6 +18,7 @@ const STORAGE_MODE_KEY = "BAZARIX_STORAGE_MODE";
 const TEAM_CACHE_KEY = "EXPOSITORES_APP_STATE__team";
 const TEAM_CONFIG_KEY = "BAZARIX_TEAM_CONFIG";
 const TEAM_META_KEY = "BAZARIX_SYNC_META__team";
+const TEAM_ME_KEY = "BAZARIX_TEAM_ME";
 const DEMO_DB_KEY = "BAZARIX_DEMO_DB";
 const SHEETS_URL_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[\w.-]+|macros)\/s\/[\w-]+\/exec$/;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -67,7 +68,7 @@ function teamConfig() {
 }
 function teamConfigured() {
   const c = teamConfig();
-  return Boolean(c) && (c.type === "demo" || (c.type === "sheets" && SHEETS_URL_RE.test(c.url || "") && Boolean(c.key)));
+  return Boolean(c) && (c.type === "demo" || (c.type === "sheets" && SHEETS_URL_RE.test(c.url || "") && Boolean(c.key || c.token)));
 }
 
 function makeSheetsTransport(cfg) {
@@ -79,13 +80,13 @@ function makeSheetsTransport(cfg) {
       const res = await fetch(cfg.url, {
         method: "POST", redirect: "follow", signal: ctl.signal,
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ op, key: cfg.key, user: cfg.user || "", ...extra }),
+        body: JSON.stringify({ op, ...(cfg.key ? { key: cfg.key } : { token: cfg.token }), user: cfg.nombre || "", ...extra }),
       });
       const data = await res.json();
       if (!data.ok) {
         const err = new Error(data.error || data.code || "Error del servidor");
         err.code = data.code;
-        err.fatal = data.code === "UNAUTHORIZED" || data.code === "BAD_CHANGE" || data.code === "BAD_REQUEST";
+        err.fatal = ["UNAUTHORIZED", "BAD_CHANGE", "BAD_REQUEST"].includes(data.code);
         throw err;
       }
       return data;
@@ -98,8 +99,9 @@ function makeSheetsTransport(cfg) {
   };
   return {
     name: "sheets",
+    call,
     ping: () => call("ping"),
-    pull: (sinceRev) => call("pull", { sinceRev }),
+    pull: (sinceRev, knownBazaars) => call("pull", { sinceRev, knownBazaars }),
     push: (changes) => call("push", { changes }),
   };
 }
@@ -114,14 +116,15 @@ const DemoTransport = {
     let db;
     try { db = JSON.parse(localStorage.getItem(DEMO_DB_KEY)); } catch { db = null; }
     db = db || { props: { API_KEY: "demo", REV: "0", TEAM_NAME: "Demo" }, rows: [] };
-    const store = makeMemoryStore_(db.props, db.rows);
+    const store = makeMemoryStore_(db.props, db.rows, db.tables);
     const res = bzxHandle_(store, JSON.parse(JSON.stringify({ op, key: "demo", ...extra })));
-    localStorage.setItem(DEMO_DB_KEY, JSON.stringify({ props: store.props, rows: store.rows }));
+    localStorage.setItem(DEMO_DB_KEY, JSON.stringify({ props: store.props, rows: store.rows, tables: store.tables }));
     if (!res.ok) { const err = new Error(res.error); err.code = res.code; err.fatal = true; throw err; }
     return res;
   },
+  call(op, extra) { return this._call(op, extra); },
   ping() { return this._call("ping"); },
-  pull(sinceRev) { return this._call("pull", { sinceRev }); },
+  pull(sinceRev, knownBazaars) { return this._call("pull", { sinceRev, knownBazaars }); },
   push(changes) { return this._call("push", { changes }); },
 };
 
@@ -206,10 +209,13 @@ const TeamAdapter = {
         Sync.set("saving");
         const t0 = Date.now();
         try {
-          const adopted = await this.pushDiff();
+          const { adopted, rejected } = await this.pushDiff();
           this.retries = 0;
           const left = this.minSavingMs - (Date.now() - t0);
           if (left > 0) await sleep(left);
+          if (rejected.length && typeof showToast === "function") {
+            showToast(`🔒 ${rejected[0]}. Se deshicieron ${rejected.length} cambio(s).`, "error");
+          }
           if (adopted > 0 && typeof showToast === "function") {
             showToast(`⚠️ ${adopted} cambio(s) tuyos fueron reemplazados por una versión más reciente de otra persona`, "error");
           }
@@ -232,6 +238,7 @@ const TeamAdapter = {
     const rows = RowSync.stateToRows(AppState);
     const changes = RowSync.diff(rows, meta.base);
     const conflicts = [];
+    const rejected = [];
     for (let i = 0; i < changes.length; i += this.batchSize) {
       const res = await this.tx().push(changes.slice(i, i + this.batchSize));
       for (const a of res.applied) {
@@ -239,11 +246,13 @@ const TeamAdapter = {
         else { const r = rows.get(a.key); meta.base[a.key] = { v: a.version, h: RowSync.hash(r.json), b: r.bazarId }; }
       }
       conflicts.push(...res.conflicts);
+      rejected.push(...(res.rejected || []));
       if (res.prevRev === meta.rev) meta.rev = res.rev;   // si nadie más escribió en medio, ya estamos al día
       this.saveMeta();
     }
-    if (conflicts.length) this.applyRemote(conflicts);    // en un choque gana lo que ya estaba en el servidor
-    return conflicts.length;
+    // En un choque gana lo que ya estaba en el servidor. Si tu rol no permite el cambio, se deshace con lo vigente.
+    if (conflicts.length || rejected.length) this.applyRemote([...conflicts, ...rejected.map((r) => r.row)]);
+    return { adopted: conflicts.length, rejected: rejected.map((r) => r.reason) };
   },
 
   /** Mezcla filas del servidor en el estado y deja la "base" alineada con lo que quedó localmente. */
@@ -265,11 +274,12 @@ const TeamAdapter = {
   async pull() {
     const meta = this.meta();
     Sync.set("syncing");
-    const res = await this.tx().pull(meta.rev);
+    const res = await this.tx().pull(meta.rev, this.knownBazaars());
     this.normalize();
     const pending = new Set(RowSync.diff(RowSync.stateToRows(AppState), meta.base).map((c) => c.key));
     const rows = (res.rows || []).filter((r) => !pending.has(r.key));
     if (rows.length) this.applyRemote(rows);
+    this.pruneBazaars(res.access);
     meta.rev = Math.max(meta.rev, res.rev);
     this.saveMeta();
     if (pending.size || RowSync.diff(RowSync.stateToRows(AppState), meta.base).length) {
@@ -281,9 +291,43 @@ const TeamAdapter = {
     }
   },
 
+  /** Bazares que este dispositivo ya conoce (el servidor manda completos los que no). */
+  knownBazaars() { return Object.keys(this.meta().base).filter((k) => k.startsWith("bazares:")).map((k) => k.slice(8)); },
+
+  /** Si ya no eres miembro de un bazar, se quita de este dispositivo. access = ids vigentes (null = dueño, no se poda). */
+  pruneBazaars(access) {
+    if (!Array.isArray(access)) return 0;
+    const meta = this.meta(), keep = new Set(access);
+    let n = 0;
+    Object.keys(meta.base).filter((k) => k.startsWith("bazares:")).forEach((k) => {
+      const id = k.slice(8);
+      if (keep.has(id)) return;
+      delete AppState.bazaars[id];
+      Object.keys(meta.base).forEach((b) => { if (meta.base[b].b === id) delete meta.base[b]; });
+      n++;
+    });
+    if (n) {
+      this.normalize();
+      this.persistCache();
+      this.saveMeta();
+      this.refreshUI();
+      if (typeof showToast === "function") showToast(`Ya no tienes acceso a ${n} bazar(es); se quitaron de este dispositivo`, "error");
+    }
+    return n;
+  },
+
+  me: null,
+  async loadMe() {
+    const res = await this.tx().call("me");
+    this.me = res.me;
+    try { localStorage.setItem(TEAM_ME_KEY, JSON.stringify(res.me)); } catch { /* sin espacio */ }
+    return res.me;
+  },
+
   /** Primero baja (para mezclar), luego sube lo que sea nuevo en este dispositivo. */
   async sync() {
     try {
+      await this.loadMe();
       await this.pull();
       this.dirty = true;
       await this.flush();
@@ -326,6 +370,48 @@ const StorageAdapter = {
   save(state) { return this.impl().save(state); },
 };
 
+// ── Quién soy y qué puedo hacer (el servidor lo vuelve a validar siempre) ──
+function teamMe() {
+  if (TeamAdapter.me) return TeamAdapter.me;
+  try { TeamAdapter.me = JSON.parse(localStorage.getItem(TEAM_ME_KEY)); } catch { TeamAdapter.me = null; }
+  return TeamAdapter.me;
+}
+function teamIsOwner() { return Boolean(teamMe()?.user?.owner); }
+function teamRoleFor(bazarId) {
+  const me = teamMe();
+  if (!me) return null;
+  if (me.user?.owner) return { rol: "owner", rolNombre: "Dueño de la hoja", todo: true, permisos: [], rank: 1000 };
+  return (me.memberships || []).find((m) => m.bazarId === bazarId) || null;
+}
+function teamIsAdmin(bazarId) { const r = teamRoleFor(bazarId); return Boolean(r && (r.todo || r.rol === "admin")); }
+function teamCan(perm, bazarId) { const r = teamRoleFor(bazarId); return Boolean(r && (r.todo || (r.permisos || []).includes(perm))); }
+
+/**
+ * Antes de crear un bazar en modo Equipo: el dueño pasa directo; los demás necesitan un código de creación
+ * (un bazar por crédito) y quedan registrados como ADMIN de ese bazar. Devuelve false si no se puede.
+ */
+async function teamBeforeCreateBazaar(id) {
+  if (StorageAdapter.mode() !== "team") return true;
+  try {
+    const me = teamMe() || await TeamAdapter.loadMe();
+    if (me.user.owner) return true;
+    const tx = TeamAdapter.tx();
+    if ((me.creditos || 0) < 1) {
+      const code = await appPrompt("Para crear un bazar necesitas un código de creación que te dé el dueño de la hoja.", "", "Código para crear bazares");
+      if (!code) return false;
+      const redeemed = await tx.call("redeem", { code });   // el transporte agrega tu token
+      TeamAdapter.me = redeemed.me;
+    }
+    const claimed = await tx.call("claimBazaar", { bazarId: id });
+    TeamAdapter.me = claimed.me;
+    try { localStorage.setItem(TEAM_ME_KEY, JSON.stringify(claimed.me)); } catch { /* sin espacio */ }
+    return true;
+  } catch (err) {
+    showToast(`❌ ${err.code === "BAD_CODE" ? "Código inválido o vencido" : err.message || "No se pudo crear el bazar (¿hay conexión?)"}`, "error");
+    return false;
+  }
+}
+
 /** Cambia de modo (recarga la página para cargar el otro conjunto de datos). */
 async function setStorageMode(mode) {
   mode = mode === "team" ? "team" : "local";
@@ -347,65 +433,100 @@ async function setStorageMode(mode) {
 }
 
 // ── Ventana "Conexión del equipo" ──
+const _el = (id) => document.getElementById(id);
+
 function openTeamConfig() {
-  const cfg = teamConfig() || { type: "sheets", url: "", key: "" };
-  document.getElementById("team-type").value = cfg.type === "demo" ? "demo" : "sheets";
-  document.getElementById("team-url").value = cfg.url || "";
-  document.getElementById("team-key").value = cfg.key || "";
-  document.getElementById("team-test-result").textContent = "";
+  const cfg = teamConfig();
+  const mode = !cfg ? "member" : cfg.type === "demo" ? "demo" : cfg.key ? "owner" : "member";
+  _el("team-type").value = mode;
+  _el("team-url").value = cfg?.url || "";
+  _el("team-key").value = cfg?.key || "";
+  _el("team-code").value = "";
+  _el("team-nombre").value = cfg?.nombre || "";
+  _el("team-test-result").textContent = "";
+  const note = _el("team-member-note");
+  note.hidden = !(cfg && cfg.token);
+  note.textContent = cfg && cfg.token ? `Ya estás conectado${cfg.nombre ? ` como ${cfg.nombre}` : ""}. Escribe otro código solo si quieres unirte a otro bazar.` : "";
   updateTeamConfigFields();
   document.getElementById("settings-menu")?.classList.remove("open");
   openModal("modal-team");
 }
 
 function updateTeamConfigFields() {
-  const demo = document.getElementById("team-type").value === "demo";
-  document.getElementById("team-sheets-fields").hidden = demo;
-  document.getElementById("team-demo-note").hidden = !demo;
+  const mode = _el("team-type").value;
+  _el("team-sheets-fields").hidden = mode === "demo";
+  _el("team-owner-fields").hidden = mode !== "owner";
+  _el("team-member-fields").hidden = mode !== "member";
+  _el("team-demo-note").hidden = mode !== "demo";
 }
 
 function readTeamForm() {
-  const type = document.getElementById("team-type").value === "demo" ? "demo" : "sheets";
-  if (type === "demo") return { type };
-  return { type, url: document.getElementById("team-url").value.trim(), key: document.getElementById("team-key").value.trim() };
+  return { mode: _el("team-type").value, url: _el("team-url").value.trim(), key: _el("team-key").value.trim(),
+    code: _el("team-code").value.trim(), nombre: _el("team-nombre").value.trim() };
 }
 
-function validateTeamForm(cfg) {
-  if (cfg.type === "demo") return "";
-  if (!SHEETS_URL_RE.test(cfg.url)) return "La URL debe ser la de la aplicación web (termina en /exec).";
-  if (cfg.key.length < 8) return "Falta la clave del equipo.";
+function validateTeamForm(f) {
+  if (f.mode === "demo") return "";
+  if (!SHEETS_URL_RE.test(f.url)) return "La URL debe ser la de la aplicación web (termina en /exec).";
+  if (f.mode === "owner") return f.key.length >= 8 ? "" : "Falta la clave del dueño.";
+  const old = teamConfig();
+  const alreadyIn = Boolean(old && old.token && old.url === f.url);
+  if (!alreadyIn && !f.code) return "Escribe tu código de invitación.";
+  if (!alreadyIn && !f.nombre) return "Escribe tu nombre.";
   return "";
 }
 
 async function testTeamConnection() {
-  const out = document.getElementById("team-test-result");
-  const cfg = readTeamForm();
-  const problem = validateTeamForm(cfg);
+  const out = _el("team-test-result");
+  const f = readTeamForm();
+  const problem = f.mode === "member" ? (SHEETS_URL_RE.test(f.url) ? "" : "La URL debe ser la de la aplicación web (termina en /exec).") : validateTeamForm(f);
   if (problem) { out.textContent = `⚠️ ${problem}`; return; }
   out.textContent = "Probando…";
   try {
-    const tx = cfg.type === "demo" ? DemoTransport : makeSheetsTransport(cfg);
+    const tx = f.mode === "demo" ? DemoTransport : makeSheetsTransport(f.mode === "owner" ? { url: f.url, key: f.key } : { url: f.url, token: "" });
     const info = await tx.ping();
-    out.textContent = `✅ Conectado${info.equipo ? ` a «${info.equipo}»` : ""} · revisión ${info.rev}`;
+    out.textContent = `✅ ${info.auth ? `Conectado${info.owner ? " como dueño" : ""}` : "El servidor responde"}${info.equipo ? ` · «${info.equipo}»` : ""}`;
   } catch (err) {
     out.textContent = `❌ ${err.code === "UNAUTHORIZED" ? "Clave incorrecta." : `No se pudo conectar: ${err.message}`}`;
   }
 }
 
 async function saveTeamConfig() {
-  const cfg = readTeamForm();
-  const problem = validateTeamForm(cfg);
-  if (problem) { document.getElementById("team-test-result").textContent = `⚠️ ${problem}`; return; }
+  const out = _el("team-test-result");
+  const f = readTeamForm();
+  const problem = validateTeamForm(f);
+  if (problem) { out.textContent = `⚠️ ${problem}`; return; }
   const old = teamConfig();
-  const changedTeam = old && (old.type !== cfg.type || old.url !== cfg.url);
-  if (changedTeam && localStorage.getItem(TEAM_CACHE_KEY)) {
-    if (!await appConfirm("Vas a conectar OTRO equipo. Se borrará el caché local del modo Equipo (el modo Local no se toca).", "Cambiar de equipo", "Cambiar")) return;
+  let cfg;
+  if (f.mode === "demo") cfg = { type: "demo" };
+  else if (f.mode === "owner") cfg = { type: "sheets", url: f.url, key: f.key, nombre: f.nombre || "" };
+  else {
+    let token = old && old.url === f.url ? old.token || "" : "";
+    let nombre = f.nombre || (old && old.url === f.url ? old.nombre : "") || "";
+    if (f.code) {
+      out.textContent = "Uniéndome…";
+      try {
+        const res = await makeSheetsTransport({ url: f.url, token, nombre }).call("redeem", { code: f.code, nombre });
+        token = res.token || token;
+      } catch (err) {
+        out.textContent = `❌ ${err.code === "BAD_CODE" ? "Código inválido o vencido." : err.code === "TOO_MANY" ? "Demasiados intentos. Espera unos minutos." : err.code === "ALREADY_MEMBER" ? "Ya eres miembro de ese bazar." : `No se pudo unir: ${err.message}`}`;
+        return;
+      }
+    }
+    cfg = { type: "sheets", url: f.url, token, nombre };
+  }
+  const sameIdentity = old && old.type === cfg.type && old.url === cfg.url && Boolean(old.key) === Boolean(cfg.key) && (!old.token || !cfg.token || old.token === cfg.token);
+  if (old && !sameIdentity && localStorage.getItem(TEAM_CACHE_KEY)) {
+    if (!await appConfirm("Vas a conectar OTRO equipo o cuenta. Se borrará el caché local del modo Equipo (el modo Local no se toca).", "Cambiar de equipo", "Cambiar")) return;
+  }
+  if (old && !sameIdentity) {
     localStorage.removeItem(TEAM_CACHE_KEY);
     localStorage.removeItem(TEAM_META_KEY);
+    localStorage.removeItem(TEAM_ME_KEY);
   }
   localStorage.setItem(TEAM_CONFIG_KEY, JSON.stringify(cfg));
-  if (StorageAdapter.mode() !== "team" && !localStorage.getItem(TEAM_CACHE_KEY) && localStorage.getItem(STORAGE_KEY)) {
-    if (await appConfirm("¿Quieres empezar con una copia de tus datos locales? (Se subirán al equipo.)", "Copiar datos locales", "Copiar")) {
+  if (StorageAdapter.mode() !== "team" && !localStorage.getItem(TEAM_CACHE_KEY) && localStorage.getItem(STORAGE_KEY) && cfg.key) {
+    if (await appConfirm("¿Quieres empezar con una copia de tus datos locales? (Se subirán al equipo como dueño.)", "Copiar datos locales", "Copiar")) {
       localStorage.setItem(TEAM_CACHE_KEY, localStorage.getItem(STORAGE_KEY));
     }
   }
@@ -461,4 +582,4 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   window.addEventListener("load", () => { if (StorageAdapter.mode() === "team") TeamAdapter.start(); });
 }
 
-if (typeof module !== "undefined") module.exports = { Sync, LocalAdapter, TeamAdapter, DemoTransport, StorageAdapter };
+if (typeof module !== "undefined") module.exports = { Sync, LocalAdapter, TeamAdapter, DemoTransport, StorageAdapter, teamBeforeCreateBazaar };
