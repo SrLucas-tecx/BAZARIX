@@ -57,6 +57,8 @@ Tarda ~10 minutos.
 - En ⚙️ → Miembros y roles se ve quién está **activo ahora** (🟢) y cuándo entró cada quien por última vez.
 - Google no publica un tope fijo de peticiones por día para aplicaciones web, pero sí limita ejecuciones simultáneas y tiempo total. La consulta es muy ligera y baja de ritmo sola cuando no hay actividad; con equipos grandes (decenas de personas activas a la vez) puede notarse lentitud.
 
+> **Si vienes de la versión 4 (sprint 4):** vuelve a pegar `Core.gs` y publica **versión nueva**. Agrega las operaciones de la pantalla Administración (`activity`, `overview`, `setUserStatus`). `Sheet.gs` no cambió; no hace falta volver a ejecutar «Preparar hoja».
+
 > **Si vienes de la versión 3:** vuelve a pegar `Core.gs`, publica **versión nueva** de la implementación y recarga la app. `Sheet.gs` no cambió.
 
 ## 8. Cómo funciona (resumen)

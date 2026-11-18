@@ -765,7 +765,7 @@ async function duplicarBazaar() {
 // 8. RENDERIZADO PRINCIPAL
 // ==========================================
 // Rutas que existen aunque no haya un bazar abierto; el resto depende del bazar activo.
-const GLOBAL_TABS = ["inicio", "bazares", "comparar", "categorias", "plantillas"];
+const GLOBAL_TABS = ["inicio", "bazares", "comparar", "categorias", "plantillas", "admin"];
 
 // Selector de bazar del nivel 2 (reemplaza al selector que estaba en el header).
 function updateNavBazaarLabel() {

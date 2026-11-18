@@ -60,6 +60,7 @@ function applyRoleGate() {
     badge.hidden = !(areas && bz);
     if (areas && bz) badge.textContent = roleBadgeText(bz.id);
   }
+  if (typeof updateAdminNav === "function") updateAdminNav();   // la pantalla Administración solo la ven dueño y admins
 }
 
 if (typeof module !== "undefined") module.exports = { GATE_AREAS, roleAreas, applyRoleGate };

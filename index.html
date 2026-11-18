@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="plano.css">
   <link rel="stylesheet" href="responsive.css">
   <link rel="stylesheet" href="permisos.css">
+  <link rel="stylesheet" href="admin.css">
   <!-- Layout y estilos en Styles.css -->
 </head>
 <body class="dark">
@@ -54,6 +55,7 @@
       <button class="nav-item" onclick="switchTab('comparar')">📊 Comparar Bazares</button>
       <button class="nav-item" onclick="switchTab('plantillas')">💾 Expositores guardados</button>
       <button class="nav-item" onclick="switchTab('categorias')">🏷️ Catálogos</button>
+      <button class="nav-item" id="nav-admin" onclick="switchTab('admin')" hidden>🛡️ Administración</button>
     </nav>
 
     <!-- Nivel 2: navegación del bazar abierto (oculta si no hay bazar) -->
@@ -1220,6 +1222,18 @@
       </section>
       <!-- / #SECCIÓN MÉTRICAS -->
 
+
+      <!-- # SECCIÓN: ADMINISTRACIÓN (modo Equipo, Sprint 5) -->
+      <section id="sec-admin" class="page-section">
+        <div class="section-header" style="justify-content:space-between;">
+          <div>
+            <h2 class="section-title">🛡️ Administración</h2>
+            <p style="font-size:var(--fs-sm);color:var(--color-text-muted);">Quién está activo, quién no ha vuelto, sus roles, la actividad reciente y los códigos del equipo.</p>
+          </div>
+        </div>
+        <div id="admin-body"></div>
+      </section>
+      <!-- / #SECCIÓN ADMINISTRACIÓN -->
 
       <!-- ─────────────────────────────────────────────────────────
            # SECCIÓN: MIS BAZARES
@@ -2700,6 +2714,7 @@
 <script src="js/extras.js"></script>
 <script src="js/equipo.js"></script>
 <script src="js/permisos.js"></script>
+<script src="js/admin.js"></script>
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>

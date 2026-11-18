@@ -244,3 +244,74 @@ async function run(kind) {
   }
   console.log("\nTODO OK (sprint 4)");
 })().catch((e) => { console.error("\nFALLA:", e); process.exit(1); });
+
+// ── Sprint 5: pantalla de admin (activity · overview · setUserStatus · members extendido) ──
+(async () => {
+  for (const kind of ["memory", "sheet"]) {
+    const S = makeServer(kind), c = S.call, t = (n) => console.log(`  ✓ ${kind}: ${n}`);
+    const ana = c({ op: "redeem", code: c({ op: "ownerCode", ...OWNER }).code, nombre: "Ana" });
+    c({ op: "claimBazaar", token: ana.token, bazarId: BZ });
+    c({ op: "push", token: ana.token, changes: [ch(`bazares:${BZ}`, { id: BZ, name: "Bazar Ana" }), ch(`tareas:${BZ}:t1`, { id: "t1", actividad: "Apartar lugar" }), ch(`categorias:cat-1`, { id: "cat-1", nombre: "Arte" })] });
+    const inv = c({ op: "invite", token: ana.token, bazarId: BZ, rol: "vista", nota: "Equipo" });
+    const beto = c({ op: "redeem", code: inv.code, nombre: "Beto" });
+    const A = { token: ana.token }, B = { token: beto.token };
+
+    // members: estado de cuenta, activo y "solo canjeó el código"
+    let m = c({ op: "members", ...A, bazarId: BZ }).members;
+    assert.ok(m.every((x) => x.activo && !x.sinVolver && x.cuenta === "activo"), "recién entrados: activos");
+    S.store.now = () => new Date(Date.now() + 10 * 60000);
+    m = c({ op: "members", ...A, bazarId: BZ }).members;       // la consulta de Ana la marca activa en el "futuro"
+    const by = (n) => m.find((x) => x.nombre === n);
+    assert.deepEqual([by("Ana").activo, by("Ana").sinVolver], [true, false]);
+    assert.deepEqual([by("Beto").activo, by("Beto").sinVolver], [false, true], "Beto solo canjeó el código y no volvió");
+    delete S.store.now;
+    t("members: activo / solo canjeó el código / estado de la cuenta");
+
+    // activity
+    const act = c({ op: "activity", ...A, bazarId: BZ }).items;
+    assert.deepEqual(act.map((x) => x.key).sort(), [`bazares:${BZ}`, `tareas:${BZ}:t1`], "solo lo del bazar (no los catálogos)");
+    assert.ok(act.every((x) => x.updatedBy === "Ana" && x.version === 1));
+    assert.equal(act.find((x) => x.coleccion === "tareas").etiqueta, "Apartar lugar");
+    assert.equal(c({ op: "activity", ...A, bazarId: BZ, limit: 1 }).items.length, 1);
+    assert.equal(c({ op: "activity", ...B, bazarId: BZ }).code, "FORBIDDEN", "Vista no ve la actividad");
+    assert.equal(c({ op: "activity", ...A }).code, "BAD_REQUEST");
+    c({ op: "push", ...A, changes: [{ key: `tareas:${BZ}:t1`, coleccion: "tareas", bazarId: BZ, baseVersion: 1, deleted: true }] });
+    const del = c({ op: "activity", ...A, bazarId: BZ }).items.find((x) => x.coleccion === "tareas");
+    assert.deepEqual([del.deleted, del.etiqueta], [true, ""]);
+    t("activity: solo admins, solo ese bazar, y muestra borrados");
+
+    // overview (solo dueño)
+    assert.equal(c({ op: "overview", ...A }).code, "FORBIDDEN");
+    const ov = c({ op: "overview", ...OWNER });
+    assert.equal(ov.bazares.length, 1);
+    assert.deepEqual([ov.bazares[0].nombre, ov.bazares[0].miembros, ov.bazares[0].admins], ["Bazar Ana", 2, ["Ana"]]);
+    assert.ok(ov.bazares[0].ultimoPor === "Ana" && ov.bazares[0].filas >= 1);
+    assert.deepEqual(ov.cuentas.map((u) => u.nombre).sort(), ["Ana", "Beto"]);
+    assert.equal(ov.cuentas.find((u) => u.nombre === "Ana").bazares, 1);
+    assert.ok(!JSON.stringify(ov).includes(ana.token), "el resumen no expone tokens");
+    t("overview: solo el dueño; bazares, admins, miembros y cuentas");
+
+    // setUserStatus
+    const mem0 = c({ op: "rev", ...OWNER }).memRev;
+    assert.equal(c({ op: "setUserStatus", ...A, userId: beto.me.user.id, estado: "suspendido" }).code, "FORBIDDEN");
+    assert.equal(c({ op: "setUserStatus", ...OWNER, userId: beto.me.user.id, estado: "x" }).code, "BAD_REQUEST");
+    assert.equal(c({ op: "setUserStatus", ...OWNER, userId: "nadie", estado: "suspendido" }).code, "NOT_FOUND");
+    assert.equal(c({ op: "setUserStatus", ...OWNER, userId: beto.me.user.id, estado: "suspendido" }).ok, true);
+    assert.equal(c({ op: "pull", ...B, sinceRev: 0 }).code, "UNAUTHORIZED", "suspendido: sin acceso");
+    assert.equal(c({ op: "members", ...A, bazarId: BZ }).members.find((x) => x.nombre === "Beto").cuenta, "suspendido");
+    assert.equal(c({ op: "rev", ...OWNER }).memRev, mem0 + 1, "avisa a los clientes");
+    assert.equal(c({ op: "setUserStatus", ...OWNER, userId: beto.me.user.id, estado: "activo" }).ok, true);
+    assert.equal(c({ op: "pull", ...B, sinceRev: 0 }).ok, true, "reactivado: vuelve a entrar con el mismo token");
+    t("setUserStatus: suspende y reactiva sin perder membresías");
+
+    // codes: filtro por bazar para el dueño y nombre de quien lo creó
+    c({ op: "ownerCode", ...OWNER });
+    const porBazar = c({ op: "codes", ...OWNER, bazarId: BZ }).codes;
+    assert.ok(porBazar.length >= 1 && porBazar.every((x) => x.bazarId === BZ), "el dueño con bazarId solo ve los de ese bazar");
+    assert.equal(porBazar.find((x) => x.nota === "Equipo").creadoPorNombre, "Ana");
+    const todos = c({ op: "codes", ...OWNER }).codes;
+    assert.ok(todos.some((x) => x.tipo === "crear" && x.creadoPorNombre === "Dueño"));
+    t("codes: el dueño filtra por bazar y se ve quién creó cada código");
+  }
+  console.log("\nTODO OK (sprint 5)");
+})().catch((e) => { console.error("\nFALLA:", e); process.exit(1); });

@@ -1,11 +1,11 @@
-BAZARIX local - paquete de CAMBIOS del sprint 4 (copia encima de tu proyecto, respetando carpetas)
+BAZARIX local - paquete de CAMBIOS del sprint 5 (copia encima de tu proyecto, respetando carpetas)
 
-NUEVOS:    js/permisos.js, permisos.css, test_permisos.js
-CAMBIADOS: index.html, js/storage.js, js/team_core.js, js/ui.js, js/bazaars.js, js/canvas.js,
-           server/Core.gs, server/INSTRUCCIONES.md, test_sync.js, test_auth.js
+NUEVOS:    js/admin.js, admin.css, test_admin.js
+CAMBIADOS: index.html, js/ui.js, js/bazaars.js, js/permisos.js, server/Core.gs, js/team_core.js,
+           server/INSTRUCCIONES.md, test_auth.js
 
 IMPORTANTE: en Apps Script vuelve a pegar SOLO server/Core.gs (Sheet.gs no cambio) y publica una VERSION NUEVA
-            de la implementacion (ver server/INSTRUCCIONES.md).
+            de la implementacion (ver server/INSTRUCCIONES.md). No hay que volver a ejecutar "Preparar hoja".
 js/team_core.js es COPIA de server/Core.gs: si cambias uno, copia al otro (test_sync.js lo verifica).
 
-Probar:  node test_sync.js   node test_auth.js   node test_extras.js   node test_equipo.js   node test_permisos.js
+Probar:  node test_sync.js   node test_auth.js   node test_extras.js   node test_equipo.js   node test_permisos.js   node test_admin.js

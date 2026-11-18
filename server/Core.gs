@@ -20,9 +20,10 @@
  *
  * Operaciones: ping · redeem · me · rev · pull · push · claimBazaar · invite · ownerCode · codes · revokeCode ·
  *              members · setRole · removeMember · saveRole · deleteRole
+ * Sprint 5 (pantalla de admin): activity (admin del bazar) · overview · setUserStatus (solo dueño)
  * Interfaz del store: withLock(fn) getProp setProp index() rowsSince(rev) get(keys) write(items) table(name) [now() random(n)]
  */
-var BZX_VERSION_ = "4.0";
+var BZX_VERSION_ = "5.0";
 var BZX_COLLECTIONS_ = { categorias: 1, caracteristicas: 1, plantillas: 1, bazares: 1, costos: 1, expositores: 1, pisos: 1, mesas: 1,
   tareas: 1, compras: 1, invitados: 1, actividades: 1, responsables: 1, roles: 1, gastos: 1, extras: 1, cajamovs: 1 };
 var BZX_GLOBAL_ = { categorias: 1, caracteristicas: 1, plantillas: 1 };   // catálogos compartidos por todo el equipo
@@ -469,6 +470,19 @@ function bzxAdminCount_(store, bazarId) {
   return store.table("Miembros").all().filter(function (m) { return m.bazarId === bazarId && m.rol === "admin"; }).length;
 }
 
+/** Texto corto para mostrar de qué registro se trata (sin datos sensibles: solo nombres/títulos). */
+function bzxLabelOf_(r) {
+  try {
+    var o = JSON.parse(r.json || "{}");
+    return String(o.name || o.negocio || o.nombre || o.actividad || o.articulo || o.activity || o.concepto || "").slice(0, 60);
+  } catch (e) { return ""; }
+}
+/** "Solo canjeó el código": la cuenta nunca registró actividad posterior (visto solo se actualiza pasados 30 s) y hoy no está activa. */
+function bzxSinVolver_(u, nowMs) {
+  var creado = new Date(u.creado).getTime(), visto = new Date(u.visto || u.creado).getTime();
+  return !isNaN(creado) && !isNaN(visto) && visto - creado <= 30000 && nowMs - visto >= 100000;
+}
+
 function bzxDispatch_(store, body, op) {
   if (op === "redeem") return bzxRedeem_(store, body);
   var a = bzxAuth_(store, body);
@@ -509,11 +523,13 @@ function bzxDispatch_(store, body, op) {
     }
     case "codes": {
       var now = bzxNow_(store).getTime();
+      var allUsers = store.table("Usuarios").all();
+      var nameOf = function (id) { if (id === "owner") return "Dueño"; var x = allUsers.filter(function (u) { return u.id === id; })[0]; return x ? x.nombre : ""; };
       var list = store.table("Codigos").all().filter(function (c) {
-        return user.owner ? true : (c.tipo === "unirse" && bzxIsAdmin_(acc, c.bazarId) && (!bazarId || c.bazarId === bazarId));
+        return user.owner ? (!bazarId || c.bazarId === bazarId) : (c.tipo === "unirse" && bzxIsAdmin_(acc, c.bazarId) && (!bazarId || c.bazarId === bazarId));
       }).map(function (c) {
         var vencido = new Date(c.expira).getTime() < now;
-        return { id: c.id, tipo: c.tipo, bazarId: c.bazarId, rol: c.rol, usos: Number(c.usos) || 0, expira: c.expira, nota: c.nota, creado: c.creado,
+        return { id: c.id, tipo: c.tipo, bazarId: c.bazarId, rol: c.rol, usos: Number(c.usos) || 0, expira: c.expira, nota: c.nota, creado: c.creado, creadoPorNombre: nameOf(c.creadoPor),
           estado: c.estado === "activo" && vencido ? "vencido" : c.estado };
       });
       return { ok: true, codes: list };
@@ -533,8 +549,9 @@ function bzxDispatch_(store, body, op) {
       var members = store.table("Miembros").all().filter(function (m) { return m.bazarId === bazarId; }).map(function (m) {
         var u = users.filter(function (x) { return x.id === m.userId; })[0] || {};
         var info = bzxRoleInfo_(store, bazarId, m.rol) || { nombre: "Vista", rank: 0 };
+        var activo = !!u.visto && nowMs - new Date(u.visto).getTime() < 100000;
         return { userId: m.userId, nombre: u.nombre || "(desconocido)", rol: m.rol, rolNombre: info.nombre, rank: info.rank, desde: m.desde, visto: u.visto || "",
-          activo: !!u.visto && nowMs - new Date(u.visto).getTime() < 100000 };
+          activo: activo, cuenta: u.estado || "activo", creado: u.creado || "", sinVolver: !activo && bzxSinVolver_(u, nowMs) };
       });
       return { ok: true, members: members };
     }
@@ -577,6 +594,50 @@ function bzxDispatch_(store, body, op) {
       rT.put(role);
       bzxBumpMem_(store);
       return { ok: true, role: { id: role.id, bazarId: bazarId, nombre: nombreR, color: color, rank: role.rank, permisos: perms } };
+    }
+    case "activity": {
+      if (!bazarId) return bzxFail_("BAD_REQUEST", "Id de bazar inválido");
+      if ((denied = bzxAdminOnly_(acc, bazarId))) return denied;
+      var lim = bzxIntIn_(body.limit, 1, 100, 30);
+      var rowsA = store.rowsSince(0).filter(function (r) { return bzxRowBazar_(r) === bazarId && r.updatedBy; });
+      rowsA.sort(function (x, y) { return String(y.updatedAt).localeCompare(String(x.updatedAt)) || Number(y.rev) - Number(x.rev); });
+      return { ok: true, items: rowsA.slice(0, lim).map(function (r) {
+        return { key: r.key, coleccion: r.coleccion, version: r.version, updatedAt: r.updatedAt, updatedBy: r.updatedBy, deleted: !!r.deleted, etiqueta: r.deleted ? "" : bzxLabelOf_(r) };
+      }) };
+    }
+    case "overview": {
+      if (!user.owner) return bzxFail_("FORBIDDEN", "Solo el dueño de la hoja ve el resumen de todos los bazares");
+      var usersO = store.table("Usuarios").all(), membersO = store.table("Miembros").all(), nowO = bzxNow_(store).getTime(), per = {};
+      var slot = function (b) { return per[b] || (per[b] = { bazarId: b, nombre: "", filas: 0, ultimo: "", ultimoPor: "", miembros: 0, admins: [] }); };
+      membersO.forEach(function (m) {
+        var p = slot(m.bazarId); p.miembros++;
+        if (m.rol === "admin") { var uu = usersO.filter(function (x) { return x.id === m.userId; })[0]; p.admins.push(uu ? uu.nombre : "(desconocido)"); }
+      });
+      store.rowsSince(0).forEach(function (r) {
+        var b = bzxRowBazar_(r); if (!b) return;
+        var p = slot(b);
+        if (!r.deleted) p.filas++;
+        if (r.coleccion === "bazares" && !r.deleted) p.nombre = bzxLabelOf_(r);
+        if (r.updatedAt && String(r.updatedAt) > p.ultimo) { p.ultimo = String(r.updatedAt); p.ultimoPor = r.updatedBy; }
+      });
+      var bazaresO = Object.keys(per).map(function (k) { if (!per[k].nombre) per[k].nombre = k; return per[k]; });
+      var cuentas = usersO.map(function (u) {
+        var activo = !!u.visto && nowO - new Date(u.visto).getTime() < 100000;
+        return { id: u.id, nombre: u.nombre, estado: u.estado || "activo", creado: u.creado, visto: u.visto || "", creditos: Number(u.creditos) || 0, activo: activo,
+          sinVolver: !activo && bzxSinVolver_(u, nowO), bazares: membersO.filter(function (m) { return m.userId === u.id; }).length };
+      });
+      return { ok: true, bazares: bazaresO, cuentas: cuentas };
+    }
+    case "setUserStatus": {
+      if (!user.owner) return bzxFail_("FORBIDDEN", "Solo el dueño de la hoja suspende o reactiva cuentas");
+      var estadoN = String(body.estado || "");
+      if (estadoN !== "activo" && estadoN !== "suspendido") return bzxFail_("BAD_REQUEST", "Estado inválido");
+      var uT = store.table("Usuarios"), tu = uT.all().filter(function (x) { return x.id === body.userId; })[0];
+      if (!tu) return bzxFail_("NOT_FOUND", "Cuenta no encontrada");
+      tu.estado = estadoN;
+      uT.put(tu);
+      bzxBumpMem_(store);
+      return { ok: true };
     }
     case "deleteRole": {
       if (!bazarId) return bzxFail_("BAD_REQUEST", "Id de bazar inválido");

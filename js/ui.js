@@ -39,7 +39,8 @@ function switchTab(tabId) {
     tareas:       "Tareas del Evento",
     compras:      "Lista de Compras",
     comparar:     "Comparar Bazares",
-    alertas:      "Alertas"
+    alertas:      "Alertas",
+    admin:        "Administración"
   };
   const titleEl = document.getElementById("page-title");
   if (titleEl) titleEl.textContent = titles[tabId] || tabId;
@@ -62,6 +63,7 @@ function switchTab(tabId) {
   if (tabId === "tareas")       renderTareas();
   if (tabId === "compras")      renderCompras();
   if (tabId === "staff")        renderResponsables();
+  if (tabId === "admin")        renderAdmin();
   syncTopNav();
 }
 
