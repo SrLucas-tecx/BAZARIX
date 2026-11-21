@@ -86,6 +86,7 @@ async function generatePDFInvoice(id) {
   const copy = template.cloneNode(true);
   copy.removeAttribute("id");
   copy.style.cssText = "display:block;box-sizing:border-box;width:700px;padding:30px;font-family:Arial,sans-serif;background:#fff;color:#333;";
+  copy.setAttribute("data-keep-emoji", "1");   // el PDF conserva los emojis (html2canvas no dibuja <use>)
   document.body.appendChild(copy);
 
   try {

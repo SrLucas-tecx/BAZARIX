@@ -1,0 +1,28 @@
+# ── Librería de iconos (Lucide) y cualquier paquete de npm ──
+# Solo se necesita para REGENERAR iconos (tools/generar_iconos.js).
+# La app NO la usa: los iconos ya vienen dentro de js/iconos_data.js (ese archivo SÍ se sube).
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# ── Archivos que genera tools/listar_emojis.js (se vuelven a crear cuando quieras) ──
+emojis_lista.md
+emojis_ubicaciones.csv
+
+# ── Paquetes de entrega y copias de seguridad ──
+*.zip
+*.bak
+*.tmp
+
+# ── Sistema y editores ──
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# ── Secretos: nunca deben llegar al repositorio ──
+.env
+.env.*
+*.key
+# (la URL del script y la clave del dueño se capturan dentro de la app, no en archivos)

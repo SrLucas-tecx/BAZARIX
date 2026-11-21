@@ -96,7 +96,7 @@ function renderResumenCategorias() {
               <td style="padding:8px 10px;">
                 <span style="display:inline-flex;align-items:center;gap:6px;">
                   <span style="width:10px;height:10px;border-radius:50%;background:${r.cat.color};display:inline-block;flex-shrink:0;"></span>
-                  <strong>${r.cat.emoji} ${escapeHTML(r.cat.nombre)}</strong>
+                  <strong class="keep-emoji">${r.cat.emoji} ${escapeHTML(r.cat.nombre)}</strong>
                 </span>
               </td>
               <td style="padding:8px 10px;text-align:center;">${r.count}</td>

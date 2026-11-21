@@ -667,7 +667,7 @@ function populateExpositorCaracteristicas(selectedIds = []) {
         <label class="caract-chip" style="--chip-color:${escapeHTML(c.color)}" title="${escapeHTML(c.descripcion || c.nombre)}">
           <input type="checkbox" class="exp-carac-option" value="${escapeHTML(c.id)}" ${selected.has(c.id) ? "checked" : ""}
                  onchange="updateExpositorCaracteristicas()">
-          <span>${escapeHTML(c.emoji)} ${escapeHTML(c.nombre)}</span>
+          <span class="keep-emoji">${escapeHTML(c.emoji)} ${escapeHTML(c.nombre)}</span>
         </label>`).join("")
     : `<span class="form-hint">Aún no hay características. Créalas en Catálogos → Características.</span>`;
   toggle.checked = list.some((c) => selected.has(c.id));

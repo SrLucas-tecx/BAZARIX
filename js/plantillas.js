@@ -67,7 +67,7 @@ function renderPlantillas() {
           </div>
           <div class="card-info">
             <div class="card-name">${escapeHTML(plt.negocio)}</div>
-            <span class="card-category" title="${escapeHTML([cat?.descripcion].filter(Boolean).join(" · "))}">${escapeHTML(catName)}</span>
+            <span class="card-category keep-emoji" title="${escapeHTML([cat?.descripcion].filter(Boolean).join(" · "))}">${escapeHTML(catName)}</span>
             ${cat?.descripcion ? `<small class="form-hint">${escapeHTML(cat.descripcion)}</small>` : ""}
             <div class="card-contact">${escapeHTML(plt.nombre)}</div>
           </div>
@@ -173,7 +173,7 @@ function renderPickerGuardados() {
     return `
       <div class="picker-row">
         <div class="expositor-avatar picker-avatar">${plt.foto ? `<img src="${plt.foto}" alt="">` : escapeHTML((plt.negocio || "?").charAt(0).toUpperCase())}</div>
-        <div class="picker-info"><strong>${escapeHTML(plt.negocio)}</strong><small>${escapeHTML(plt.nombre)} · ${escapeHTML(catName)}</small>${cat?.descripcion ? `<small>${escapeHTML(cat.descripcion)}</small>` : ""}</div>
+        <div class="picker-info"><strong>${escapeHTML(plt.negocio)}</strong><small class="keep-emoji">${escapeHTML(plt.nombre)} · ${escapeHTML(catName)}</small>${cat?.descripcion ? `<small>${escapeHTML(cat.descripcion)}</small>` : ""}</div>
         ${yaEsta
           ? `<span class="form-hint">Ya está en este bazar</span>`
           : `<button class="btn-primary btn-sm" onclick="usarPlantillaDesdePicker('${plt.id}')">➕ Agregar</button>`}

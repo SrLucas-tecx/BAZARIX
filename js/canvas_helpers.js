@@ -209,6 +209,7 @@ function exportarMapaPDF() {
     </div>
     <p style="height:${footH}px;margin:${footGap}px 0 0;text-align:center;color:#64748b;font-size:10px;line-height:${footH}px;">Documento generado por BAZARIX</p>`;
 
+  wrapper.setAttribute("data-keep-emoji", "1");
   document.body.appendChild(wrapper);
   renderElementToPDF(wrapper, {
     margin: 8,

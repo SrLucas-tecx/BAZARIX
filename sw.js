@@ -1,16 +1,16 @@
 /* BAZARIX — sw.js (Sprint 6): la app abre sin conexión.
    Red primero, caché de respaldo: así una versión nueva siempre se ve de inmediato si hay internet.
    NO toca las peticiones a Google Apps Script (la sincronización va directo, sin caché). */
-const VERSION = "bazarix-v6-1";
+const VERSION = "bazarix-v6-2";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "BAZARIX-svg.svg",
-  "Styles.css", "plano.css", "responsive.css", "permisos.css", "admin.css",
+  "Styles.css", "plano.css", "responsive.css", "permisos.css", "admin.css", "iconos.css",
   "js/storage.js", "js/team_core.js", "js/state.js", "js/sync_rows.js", "js/utils.js", "js/dialogs.js", "js/bazaars.js",
   "js/responsables.js", "js/eventos.js", "js/expositores.js", "js/categorias.js", "js/finanzas.js", "js/costos.js", "js/mesas.js",
   "js/modales.js", "js/checklist.js", "js/plantillas.js", "js/invitados.js", "js/asistencia.js", "js/alertas.js", "js/metricas.js",
   "js/pdf.js", "js/canvas.js", "js/canvas_helpers.js", "js/charts.js", "js/ui.js", "js/historial.js", "js/evento_dia.js",
   "js/evento_ficha.js", "js/tareas.js", "js/compras.js", "js/extras.js", "js/equipo.js", "js/permisos.js", "js/admin.js",
-  "js/privacidad.js", "js/export_excel.js", "js/backup.js", "js/emojis.js", "js/init.js"
+  "js/privacidad.js", "js/iconos_data.js", "js/iconos.js", "js/export_excel.js", "js/backup.js", "js/emojis.js", "js/init.js"
 ];
 const CDN_HOSTS = ["cdn.jsdelivr.net", "cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 

@@ -66,7 +66,7 @@ function caracteristicasChipsHTML(item, kind = "exp", max = 2) {
   const list = getExpositorCaracteristicas(item);
   if (!list.length) return "";
   const chips = list.slice(0, max).map((c) =>
-    `<span class="caract-chip-mini" style="--chip-color:${escapeHTML(c.color)}" title="${escapeHTML(c.descripcion || c.nombre)}">${escapeHTML(c.emoji)} ${escapeHTML(c.nombre)}</span>`
+    `<span class="caract-chip-mini keep-emoji" style="--chip-color:${escapeHTML(c.color)}" title="${escapeHTML(c.descripcion || c.nombre)}">${escapeHTML(c.emoji)} ${escapeHTML(c.nombre)}</span>`
   ).join("");
   const more = list.length > max
     ? `<button type="button" class="link-inline caract-more" onclick="openCaracteristicas('${kind}','${escapeHTML(item.id)}')">Ver todas (${list.length})</button>`
@@ -85,7 +85,7 @@ function openCaracteristicas(kind, id) {
   document.getElementById("modal-caracteristicas-list").innerHTML = list.length
     ? list.map((c) => `
         <div class="subcategory-popup-row" style="border-left:4px solid ${escapeHTML(c.color)};">
-          <span>${escapeHTML(c.emoji)} <strong>${escapeHTML(c.nombre)}</strong></span>
+          <span class="keep-emoji">${escapeHTML(c.emoji)} <strong>${escapeHTML(c.nombre)}</strong></span>
           ${c.descripcion ? `<small class="form-hint" style="margin:0;">${escapeHTML(c.descripcion)}</small>` : ""}
         </div>`).join("")
     : `<p class="form-hint">Este expositor no tiene características.</p>`;
@@ -156,7 +156,7 @@ function renderCategorias() {
     return `
       <div class="catalog-card" style="--cat-color:${escapeHTML(item.color)};">
         <div class="catalog-card-head">
-          <span class="catalog-card-emoji" aria-hidden="true">${escapeHTML(item.emoji)}</span>
+          <span class="catalog-card-emoji keep-emoji" aria-hidden="true">${escapeHTML(item.emoji)}</span>
           <div class="catalog-card-title">
             <strong>${escapeHTML(item.nombre)}</strong>
             ${item.descripcion ? `<small>${escapeHTML(item.descripcion)}</small>` : ""}
@@ -309,7 +309,7 @@ function renderCategoryChips() {
     filterChanged = true;
   }
   container.innerHTML = categories.map((cat) => `
-    <button class="filter-chip" onclick="setFilterCategory('${cat.id}', this)">
+    <button class="filter-chip keep-emoji" onclick="setFilterCategory('${cat.id}', this)">
       ${cat.emoji} ${escapeHTML(cat.nombre)}
     </button>`).join("");
   if (filterChanged) renderExpositores();

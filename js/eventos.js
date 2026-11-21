@@ -302,6 +302,7 @@ function exportarMinutoAMinutoPDF() {
       <tbody>${rows.length ? rows.map((row, index) => `<tr style="${index % 2 ? "background:#f8fafc;" : ""}page-break-inside:avoid;">${[...(multi ? [minutoDiaLabel(row, bz)] : []), row.time, row.horaFin, minuteDuration(row.time, row.horaFin), row.activity, row.lugar, getItemRolNombre(row, bz), getResponsableNombre(row.responsableId, bz), row.notes].map((value) => `<td style="padding:9px;border-bottom:1px solid #e2e8f0;vertical-align:top;word-wrap:break-word;">${escapeHTML(value || "—")}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length}" style="padding:18px;text-align:center;color:#64748b;">Sin actividades programadas.</td></tr>`}</tbody>
     </table>
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;color:#64748b;font-size:11px;text-align:center;">Documento generado por BAZARIX</div>`;
+  wrapper.setAttribute("data-keep-emoji", "1");
   document.body.appendChild(wrapper);
   wrapper.style.display = "block";
   window.html2pdf().set({

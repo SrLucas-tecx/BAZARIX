@@ -121,7 +121,7 @@ function renderExpositores() {
           </div>
           <div class="card-info">
             <div class="card-name" title="${escapeHTML(exp.negocio)}">${escapeHTML(exp.negocio)}</div>
-            <span class="card-category" title="${escapeHTML([cat?.descripcion].filter(Boolean).join(" · "))}">${escapeHTML(catName)}</span>
+            <span class="card-category keep-emoji" title="${escapeHTML([cat?.descripcion].filter(Boolean).join(" · "))}">${escapeHTML(catName)}</span>
             <div class="card-contact">${escapeHTML(exp.nombre)}</div>
           </div>
         </div>
@@ -210,7 +210,7 @@ function renderExpositoresTabla(list) {
           <strong>${escapeHTML(exp.negocio)}</strong>${exp.banned ? ` <span style="color:var(--color-danger);font-weight:800;font-size:var(--fs-xs);">🚫 Baneado</span>` : ""}<br>
           <small style="color:var(--color-text-muted);">${escapeHTML(exp.nombre)}</small>${bazarEsMultiDia() ? `<br>${diasBadgeHTML(exp)}` : ""}
         </td>
-        <td>${escapeHTML(catName)}${caracteristicasChipsHTML(exp)}</td>
+        <td class="keep-emoji">${escapeHTML(catName)}${caracteristicasChipsHTML(exp)}</td>
         <td>${escapeHTML(getExpositorLocation(exp))}</td>
         <td>${formatCurrency(exp.costo)}</td>
         <td style="color:${saldo > 0 ? "var(--color-unpaid)" : "var(--color-paid)"};">${formatCurrency(saldo)}</td>

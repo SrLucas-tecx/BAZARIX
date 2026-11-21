@@ -1,11 +1,11 @@
-BAZARIX local - paquete de CAMBIOS del sprint 6 (copia encima de tu proyecto, respetando carpetas)
+BAZARIX local - paquete de CAMBIOS: iconos de Lucide en la interfaz (va ENCIMA de sprint 6b)
 
-NUEVOS:    sw.js, manifest.webmanifest, _headers, .nojekyll, js/privacidad.js, test_publicacion.js,
-           docs/GUIA_GRUPO.md, docs/PRIVACIDAD.md, docs/CHECKLIST_PUBLICACION.md
-CAMBIADOS: index.html, server/Sheet.gs, server/INSTRUCCIONES.md
+NUEVOS:    js/iconos.js, js/iconos_data.js, iconos.css, tools/generar_iconos.js, tools/listar_emojis.js, listar_emojis.cmd, test_iconos.js
+CAMBIADOS: index.html, sw.js, js/categorias.js, js/expositores.js, js/plantillas.js, js/metricas.js, js/modales.js,
+           js/pdf.js, js/eventos.js, js/canvas_helpers.js, docs/CHECKLIST_PUBLICACION.md
 
-IMPORTANTE: en Apps Script vuelve a pegar SOLO server/Sheet.gs (Core.gs no cambio), publica una VERSION NUEVA
-            y recarga la hoja para ver el menu de respaldos. Pide un permiso nuevo (Drive) la primera vez.
-Para el modo sin conexion/instalable la app debe servirse por HTTPS (ver docs/GUIA_GRUPO.md).
+No necesita npm ni internet: los iconos ya vienen dentro de js/iconos_data.js. Para cambiar un icono edita el MAPA de
+tools/generar_iconos.js, corre  npm install --no-save lucide-static  y luego  node tools/generar_iconos.js
+Para desactivar los iconos (volver a emojis) basta con quitar los dos <script> de iconos en index.html.
 
-Probar:  node test_sync.js   node test_auth.js   node test_extras.js   node test_equipo.js   node test_permisos.js   node test_admin.js   node test_publicacion.js
+Probar:  node test_iconos.js   (y las demas: test_sync test_auth test_extras test_equipo test_permisos test_admin test_publicacion)

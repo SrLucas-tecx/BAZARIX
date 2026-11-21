@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="responsive.css">
   <link rel="stylesheet" href="permisos.css">
   <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="iconos.css">
   <!-- Layout y estilos en Styles.css -->
 </head>
 <body class="dark">
@@ -1865,7 +1866,7 @@
       <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-caracteristicas')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="modal-caracteristicas-list" class="subcategory-popup-list"></div>
+      <div id="modal-caracteristicas-list" class="subcategory-popup-list keep-emoji"></div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn-secondary" onclick="closeModal('modal-caracteristicas')">Cerrar</button>
@@ -2631,7 +2632,7 @@
     <div class="modal-body">
       <p><strong>Qué datos maneja BAZARIX.</strong> Nombres, teléfonos, correos, notas, pagos y montos de expositores, staff e invitados, además de tareas, compras y cajas del evento.</p>
       <p><strong>Dónde se guardan.</strong> En <em>modo Local</em>, solo en este navegador. En <em>modo Equipo</em>, también en la <strong>hoja de Google del grupo</strong> (la cuenta de quien administra la hoja). No hay un servidor de BAZARIX: nadie más recibe estos datos.</p>
-      <p><strong>Quién los puede ver.</strong> El dueño de la hoja, los administradores y los miembros de cada bazar (cada bazar está aislado de los demás). <strong>Un miembro con rol Vista puede leer todo el bazar</strong>, incluidos teléfonos, correos y montos. Quien tenga acceso de edición a la hoja de Google también puede verlos.</p>
+      <p><strong>Quién los puede ver.</strong> El dueño de la hoja, los administradores y los miembros de cada bazar (cada bazar está aislado de los demás). Un miembro con rol <strong>Vista</strong> ve el bazar (nombres, pagos, montos, notas) pero <strong>no recibe los teléfonos ni correos</strong> de expositores y staff: el servidor no se los envía. Los ven el dueño, los administradores y los roles con permiso. <strong>Quien tenga acceso de edición a la hoja de Google sí puede verlo todo.</strong></p>
       <p><strong>Fotos.</strong> Las fotos y logos <em>no</em> se suben: se quedan en el dispositivo de quien las puso.</p>
       <p><strong>Tu responsabilidad.</strong> Si registras datos de otras personas (expositores, staff, invitados), quien organiza el evento debe informarles para qué se usan y atender sus solicitudes de corrección o borrado. Da acceso solo a quien lo necesite y revoca códigos y cuentas cuando ya no hagan falta.</p>
       <p class="form-hint">Este texto es una guía general, no asesoría legal. Adáptalo a tu grupo (hay una plantilla en docs/PRIVACIDAD.md).</p>
@@ -2704,7 +2705,7 @@
 <script src="js/mesas.js"></script>
 <script src="js/modales.js"></script>
 <script src="js/checklist.js"></script>
-<div class="emoji-picker" id="emoji-picker" role="dialog" aria-label="Selector de emojis" hidden>
+<div class="emoji-picker keep-emoji" id="emoji-picker" role="dialog" aria-label="Selector de emojis" hidden>
   <div class="emoji-picker-heading">
     <strong>Elegir emoji</strong>
     <button class="emoji-picker-close" id="emoji-picker-close" type="button" aria-label="Cerrar">✕</button>
@@ -2742,6 +2743,8 @@
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>
+<script src="js/iconos_data.js"></script>
+<script src="js/iconos.js"></script>
 <script src="js/init.js"></script>
 <script>/* PWA: la app abre sin conexión (solo con https o localhost) */
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {

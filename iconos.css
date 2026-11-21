@@ -1,0 +1,16 @@
+/* ═══ BAZARIX — iconos.css · cargar DESPUÉS de plano.css ═══
+   Iconos de Lucide que sustituyen a los emojis de la interfaz (ver js/iconos.js). Heredan el color del texto. */
+.ico-i {
+  display: inline-block; flex: 0 0 auto; width: 1.1em; height: 1.1em; vertical-align: -.2em;
+  fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Puntos de estado (🟢 / ⚪) */
+.ico-i.ic-dot { width: .7em; height: .7em; vertical-align: .02em; }
+.ico-i.ic-ok  { color: var(--color-paid); fill: currentColor; stroke: none; }
+.ico-i.ic-off { color: var(--color-text-muted); stroke-width: 3; }
+/* Iconos grandes (tarjetas de métricas, estados vacíos): trazo más fino */
+.stat-icon .ico-i, .catalog-empty-icon .ico-i, .bazaar-home-emoji .ico-i { stroke-width: 1.5; }
+.catalog-empty-icon .ico-i { width: 1em; height: 1em; }
+.bazaar-home-emoji .ico-i { width: 1em; height: 1em; }
+/* Botones de solo icono: centrados */
+button > .ico-i:only-child { margin: 0; }
