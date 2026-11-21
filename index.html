@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0d9488">
   <title>BAZARIX — Gestión de Bazares</title>
   <link rel="icon" type="image/svg+xml" href="BAZARIX-svg.svg">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1281,6 +1282,7 @@
     <!-- # FOOTER -->
     <footer class="footer">
       BAZARIX &copy; 2026 — Plataforma Modular de Control de Bazares y Eventos.
+      · <button type="button" class="link-inline" onclick="openPrivacidad()">Aviso de privacidad</button>
     </footer>
 
   </main>
@@ -2619,6 +2621,27 @@
   </div>
 </div>
 
+<!-- Aviso de privacidad (Sprint 6) -->
+<div id="modal-privacidad" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title">🔒 Aviso de privacidad</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-privacidad')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Qué datos maneja BAZARIX.</strong> Nombres, teléfonos, correos, notas, pagos y montos de expositores, staff e invitados, además de tareas, compras y cajas del evento.</p>
+      <p><strong>Dónde se guardan.</strong> En <em>modo Local</em>, solo en este navegador. En <em>modo Equipo</em>, también en la <strong>hoja de Google del grupo</strong> (la cuenta de quien administra la hoja). No hay un servidor de BAZARIX: nadie más recibe estos datos.</p>
+      <p><strong>Quién los puede ver.</strong> El dueño de la hoja, los administradores y los miembros de cada bazar (cada bazar está aislado de los demás). <strong>Un miembro con rol Vista puede leer todo el bazar</strong>, incluidos teléfonos, correos y montos. Quien tenga acceso de edición a la hoja de Google también puede verlos.</p>
+      <p><strong>Fotos.</strong> Las fotos y logos <em>no</em> se suben: se quedan en el dispositivo de quien las puso.</p>
+      <p><strong>Tu responsabilidad.</strong> Si registras datos de otras personas (expositores, staff, invitados), quien organiza el evento debe informarles para qué se usan y atender sus solicitudes de corrección o borrado. Da acceso solo a quien lo necesite y revoca códigos y cuentas cuando ya no hagan falta.</p>
+      <p class="form-hint">Este texto es una guía general, no asesoría legal. Adáptalo a tu grupo (hay una plantilla en docs/PRIVACIDAD.md).</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-primary" onclick="acceptPrivacidad()">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-app-dialog" class="modal-overlay" role="presentation" aria-hidden="true">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title" aria-describedby="app-dialog-message">
     <div class="modal-header">
@@ -2715,10 +2738,16 @@
 <script src="js/equipo.js"></script>
 <script src="js/permisos.js"></script>
 <script src="js/admin.js"></script>
+<script src="js/privacidad.js"></script>
 <script src="js/export_excel.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/emojis.js"></script>
 <script src="js/init.js"></script>
+<script>/* PWA: la app abre sin conexión (solo con https o localhost) */
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+</script>
 
 </body>
 </html>

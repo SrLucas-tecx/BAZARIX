@@ -67,6 +67,14 @@ Tarda ~10 minutos.
 - **Cada bazar está aislado:** solo lo ven sus miembros (y el dueño). Los catálogos (categorías, características, expositores guardados) son del equipo y solo los editan los administradores.
 - **Las fotos no se suben** (logo, foto de expositor, fondo del plano): se quedan en el dispositivo de quien las puso.
 
+## 9. Respaldo de la hoja (nuevo)
+Google no hace copias de seguridad automáticas de tu hoja. En el menú **BAZARIX**:
+- **Hacer respaldo ahora**: copia la hoja a la carpeta «BAZARIX respaldos» de tu Drive.
+- **Activar respaldo semanal**: lo hace solo cada lunes de madrugada (autoriza el permiso de Drive la primera vez). Se conservan las últimas 8 copias; las más viejas van a la papelera.
+- Para **restaurar**: abre la copia que quieras, **Implementar → Nueva implementación → Aplicación web** y conecta la app con la URL nueva (o copia las pestañas `Datos`, `Usuarios`, `Miembros`, `Codigos` y `RolesAcceso` a la hoja original).
+- La copia incluye teléfonos y correos: **no compartas esa carpeta**.
+- Al actualizar `Sheet.gs`, publica una **versión nueva** de la implementación y recarga la hoja para ver los menús nuevos.
+
 ## Importante
 - **No edites a mano** las pestañas de la hoja. Respaldo: *Archivo → Descargar* o *Hacer una copia*.
 - Los tokens de las personas se guardan **cifrados (hash)**; los códigos también. Quien edite la hoja o el script puede ver los datos del bazar, así que no des acceso de edición a la hoja a quien no deba verlos.

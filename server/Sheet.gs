@@ -119,6 +119,61 @@ function doGet() {
   return ContentService.createTextOutput("BAZARIX API activa (v" + BZX_VERSION_ + ")");
 }
 
+// ── Respaldo de la hoja (Sprint 6) ─────────────────────────────
+// Copia la hoja completa (datos, usuarios, códigos y script) a la carpeta "BAZARIX respaldos" de tu Drive.
+// La copia contiene teléfonos y correos: no compartas esa carpeta. Se conservan las últimas BZX_BACKUP_KEEP_ copias
+// (las más viejas van a la papelera de Drive, donde se pueden recuperar).
+var BZX_BACKUP_FOLDER_ = "BAZARIX respaldos";
+var BZX_BACKUP_KEEP_ = 8;
+
+/** Dado [{ id, name, created }] devuelve los ids a mandar a la papelera: los más viejos que pasen de `keep` y que sean respaldos de esta hoja. */
+function bzxRespaldosAPodar_(files, prefix, keep) {
+  return files.filter(function (f) { return String(f.name).indexOf(prefix) === 0; })
+    .sort(function (a, b) { return b.created - a.created; })
+    .slice(keep).map(function (f) { return f.id; });
+}
+
+function bzxCarpetaRespaldos_() {
+  var it = DriveApp.getFoldersByName(BZX_BACKUP_FOLDER_);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(BZX_BACKUP_FOLDER_);
+}
+
+/** Hace una copia ahora y poda las viejas. Devuelve { nombre, podadas }. */
+function bzxHacerRespaldo_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), folder = bzxCarpetaRespaldos_();
+  var prefix = ss.getName() + " — respaldo ";
+  var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd_HHmm");
+  var copy = DriveApp.getFileById(ss.getId()).makeCopy(prefix + stamp, folder);
+  var files = [], it = folder.getFiles();
+  while (it.hasNext()) { var f = it.next(); files.push({ id: f.getId(), name: f.getName(), created: f.getDateCreated().getTime() }); }
+  var old = bzxRespaldosAPodar_(files, prefix, BZX_BACKUP_KEEP_);
+  old.forEach(function (id) { DriveApp.getFileById(id).setTrashed(true); });
+  return { nombre: copy.getName(), podadas: old.length };
+}
+
+function respaldarHoja() {
+  var r = bzxHacerRespaldo_();
+  SpreadsheetApp.getUi().alert("Respaldo listo", "Se creó «" + r.nombre + "» en la carpeta «" + BZX_BACKUP_FOLDER_ + "» de tu Drive." + (r.podadas ? "\nSe mandaron a la papelera " + r.podadas + " respaldo(s) antiguo(s)." : ""), SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+/** La ejecuta el activador semanal (sin ventanas). */
+function respaldoAutomatico() { bzxHacerRespaldo_(); }
+
+function bzxQuitarActivadoresRespaldo_() {
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === "respaldoAutomatico") { ScriptApp.deleteTrigger(t); n++; } });
+  return n;
+}
+function activarRespaldoSemanal() {
+  bzxQuitarActivadoresRespaldo_();                                   // no se duplican si lo activas dos veces
+  ScriptApp.newTrigger("respaldoAutomatico").timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(3).create();
+  SpreadsheetApp.getUi().alert("Respaldo semanal activado", "Cada lunes de madrugada se copiará la hoja a «" + BZX_BACKUP_FOLDER_ + "».", SpreadsheetApp.getUi().ButtonSet.OK);
+}
+function desactivarRespaldoSemanal() {
+  var n = bzxQuitarActivadoresRespaldo_();
+  SpreadsheetApp.getUi().alert(n ? "Respaldo semanal desactivado" : "No había respaldo semanal activo");
+}
+
 // ── Menú de la hoja ────────────────────────────────────────────
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("BAZARIX")
@@ -126,6 +181,10 @@ function onOpen() {
     .addItem("2. Ver URL y clave del dueño", "mostrarConexion")
     .addSeparator()
     .addItem("Regenerar clave del dueño", "regenerarClave")
+    .addSeparator()
+    .addItem("Hacer respaldo ahora", "respaldarHoja")
+    .addItem("Activar respaldo semanal", "activarRespaldoSemanal")
+    .addItem("Desactivar respaldo semanal", "desactivarRespaldoSemanal")
     .addToUi();
 }
 

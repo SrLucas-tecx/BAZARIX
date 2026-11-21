@@ -1,0 +1,14 @@
+{
+  "name": "BAZARIX — Gestión de Bazares",
+  "short_name": "BAZARIX",
+  "description": "Organiza expositores, pagos, plano de mesas, tareas y más para tu bazar.",
+  "lang": "es-MX",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1f22",
+  "theme_color": "#0d9488",
+  "icons": [
+    { "src": "BAZARIX-svg.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
