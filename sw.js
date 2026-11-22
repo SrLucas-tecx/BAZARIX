@@ -1,10 +1,10 @@
 /* BAZARIX — sw.js (Sprint 6): la app abre sin conexión.
    Red primero, caché de respaldo: así una versión nueva siempre se ve de inmediato si hay internet.
    NO toca las peticiones a Google Apps Script (la sincronización va directo, sin caché). */
-const VERSION = "bazarix-v6-2";
+const VERSION = "bazarix-v6-3";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "BAZARIX-svg.svg",
-  "Styles.css", "plano.css", "responsive.css", "permisos.css", "admin.css", "iconos.css",
+  "Styles.css", "plano.css", "responsive.css", "permisos.css", "admin.css", "iconos.css", "botones.css",
   "js/storage.js", "js/team_core.js", "js/state.js", "js/sync_rows.js", "js/utils.js", "js/dialogs.js", "js/bazaars.js",
   "js/responsables.js", "js/eventos.js", "js/expositores.js", "js/categorias.js", "js/finanzas.js", "js/costos.js", "js/mesas.js",
   "js/modales.js", "js/checklist.js", "js/plantillas.js", "js/invitados.js", "js/asistencia.js", "js/alertas.js", "js/metricas.js",

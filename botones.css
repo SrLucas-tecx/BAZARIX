@@ -1,0 +1,59 @@
+/* ═══════════════════════════════════════════════════════════════
+   BAZARIX — botones.css · cargar AL FINAL (después de iconos.css)
+   Vuelve a los botones y colores suaves de antes (menos peso visual) conservando los iconos actuales.
+   Solo toca: botones y etiquetas de las tarjetas (expositores, staff, extras, guardados) y la barra del plano.
+   Para volver al estilo anterior basta quitar el <link> de este archivo en index.html.
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --soft-ok-bg: rgba(16,185,129,.13);   --soft-ok-fg: #047857;   --soft-ok-bd: rgba(16,185,129,.40);
+  --soft-warn-bg: rgba(245,158,11,.15); --soft-warn-fg: #b45309; --soft-warn-bd: rgba(245,158,11,.45);
+  --soft-bad-bg: rgba(239,68,68,.11);   --soft-bad-fg: #b91c1c;  --soft-bad-bd: rgba(239,68,68,.40);
+  --soft-info-bg: rgba(59,130,246,.12); --soft-info-fg: #1d4ed8; --soft-info-bd: rgba(59,130,246,.40);
+  --soft-orange-bg: rgba(249,115,22,.13); --soft-orange-fg: #c2410c; --soft-orange-bd: rgba(249,115,22,.40);
+}
+body.dark {
+  --soft-ok-fg: #6ee7b7; --soft-warn-fg: #fcd34d; --soft-bad-fg: #fca5a5; --soft-info-fg: #93c5fd; --soft-orange-fg: #fdba74;
+}
+
+/* ── Tarjetas: botones de acción (antes sólidos y de 44 px) ── */
+html body .expositor-card .btn-pay-toggle,
+html body .expositor-card .btn-danger {
+  min-height: 2.2rem; padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0;
+}
+html body .expositor-card .btn-pay-toggle.mark-paid   { background: var(--soft-ok-bg);   color: var(--soft-ok-fg);   border: 1.5px solid var(--soft-ok-bd); }
+html body .expositor-card .btn-pay-toggle.mark-unpaid { background: var(--soft-warn-bg); color: var(--soft-warn-fg); border: 1.5px solid var(--soft-warn-bd); }
+html body .expositor-card .btn-danger                 { background: var(--soft-bad-bg);  color: var(--soft-bad-fg);  border: 1.5px solid var(--soft-bad-bd); }
+html body .expositor-card .btn-pay-toggle.mark-paid:hover   { background: rgba(16,185,129,.22);  filter: none; transform: none; }
+html body .expositor-card .btn-pay-toggle.mark-unpaid:hover { background: rgba(245,158,11,.25);  filter: none; transform: none; }
+html body .expositor-card .btn-danger:hover                 { background: rgba(239,68,68,.22);   filter: none; transform: none; color: var(--soft-bad-fg); }
+html body .expositor-card :is(.btn-pay-toggle, .btn-danger):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* ── Tarjetas: etiquetas de pago y publicación (antes sólidas) ── */
+html body .expositor-card .paid-badge { font-size: var(--fs-xs); font-weight: 700; padding: 3px 12px; }
+html body .expositor-card .paid-badge.paid   { background: var(--soft-ok-bg);   color: var(--soft-ok-fg);   border: 1px solid var(--soft-ok-bd); }
+html body .expositor-card .paid-badge.unpaid { background: var(--soft-warn-bg); color: var(--soft-warn-fg); border: 1px solid var(--soft-warn-bd); }
+html body .expositor-card .publication-status { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0; }
+html body .expositor-card .publication-status.status-pendiente { background: var(--soft-orange-bg); color: var(--soft-orange-fg); border: 1px solid var(--soft-orange-bd); }
+html body .expositor-card .publication-status.status-parcial   { background: var(--soft-warn-bg);   color: var(--soft-warn-fg);   border: 1px solid var(--soft-warn-bd); }
+html body .expositor-card .publication-status.status-lista     { background: var(--soft-info-bg);   color: var(--soft-info-fg);   border: 1px solid var(--soft-info-bd); }
+html body .expositor-card .publication-status.status-publicada { background: var(--soft-ok-bg);     color: var(--soft-ok-fg);     border: 1px solid var(--soft-ok-bd); }
+
+/* ── Plano: lavado de cara suave (mismos grupos y pestañas, menos peso) ── */
+html body .toolbar-card,
+html body .map-controls-panel { background: var(--color-surface); box-shadow: 0 1px 4px rgba(0,0,0,.14); }
+html body .ribbon.row-green-card > .canvas-toolbar-group:nth-child(n) {
+  padding: var(--space-2) var(--space-3); gap: 6px; background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+/* botones del plano: vuelven a ser compactos (icono a la izquierda del texto) en lugar de apilados */
+html body .ribbon .canvas-toolbar-group[data-rt="plano"] :is(.canvas-mode-btn, .btn-primary, .btn-secondary, .btn-danger) {
+  flex-direction: row; min-width: 0; min-height: 34px; padding: 0 var(--space-3); gap: 6px; font-size: var(--fs-xs);
+}
+html body .ribbon .canvas-toolbar-group[data-rt="plano"] .ico { width: 16px; height: 16px; }
+html body .canvas-mode-btn.active { box-shadow: none; }
+/* barra superior del plano (Piso, Duplicar, Renombrar…): de 42 px a 36 px */
+html body .map-controls-panel .btn-sm,
+html body .map-controls-panel .filter-select { min-height: 36px; font-size: var(--fs-xs); }
+html body .map-controls-panel .btn-sm { padding-right: var(--space-3); padding-left: var(--space-3); }
