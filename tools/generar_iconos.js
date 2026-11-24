@@ -31,12 +31,15 @@ const MAPA = {
   "☀️": ["sun"], "🌙": ["moon"], "💻": ["laptop"], "😊": ["smile"],
 };
 
+// iconos que se usan directo en el HTML (sin emoji de por medio)
+const EXTRA = ["layout-grid", "layout-dashboard", "list", "table"];
+
 const dir = path.resolve(process.argv[2] || "node_modules/lucide-static");
 const iconsDir = path.join(dir, "icons");
 if (!fs.existsSync(iconsDir)) { console.error(`No encuentro ${iconsDir}. Corre: npm install --no-save lucide-static`); process.exit(1); }
 const version = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).version;
 
-const nombres = [...new Set(Object.values(MAPA).map((v) => v[0]))].sort();
+const nombres = [...new Set(Object.values(MAPA).map((v) => v[0]).concat(EXTRA))].sort();
 const svg = {};
 for (const n of nombres) {
   const f = path.join(iconsDir, `${n}.svg`);

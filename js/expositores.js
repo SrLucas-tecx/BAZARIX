@@ -42,6 +42,10 @@ function renderExpositores() {
   const container = document.getElementById("expositores-grid");
   if (!container) return;
   const bz = getActiveBazaar();
+  const view = ["cards", "compact", "list", "table"].includes(AppState.expositorView) ? AppState.expositorView : "cards";
+  container.classList.toggle("is-compact-view", view === "compact");
+  container.classList.toggle("is-list-view", view === "list");
+  if (document.getElementById("modal-expositor-detalle")?.classList.contains("open")) drawExpositorDetalle();   // «Ver más» abierto: se mantiene al día
   syncExpositorViewButtons();
   renderExpositorDayFilters(bz);
   const sortSelect = document.getElementById("expositor-sort");
@@ -82,11 +86,20 @@ function renderExpositores() {
     return;
   }
 
-  if (AppState.expositorView === "table") {
+  if (view === "table") {
     container.innerHTML = renderExpositoresTabla(list);
     return;
   }
+  if (view === "compact" || view === "list") {   // tarjeta compacta o lista en filas (mismos datos, más aire)
+    container.innerHTML = renderExpositoresMini(list, bz);
+    return;
+  }
 
+  container.innerHTML = renderExpositorCardsHTML(list, bz);
+}
+
+/** HTML de las tarjetas completas. Lo usan la vista Tarjetas y la ventana «Ver más». */
+function renderExpositorCardsHTML(list, bz = getActiveBazaar()) {
   // Todas las tarjetas muestran los mismos campos (con "Sin dato" cuando falta uno),
   // así tienen la misma estructura y altura aunque el expositor esté incompleto.
   const meta = (label, value) => `
@@ -95,7 +108,7 @@ function renderExpositores() {
             <div class="card-meta-value">${value}</div>
           </div>`;
 
-  container.innerHTML = list.map((exp) => {
+  return list.map((exp) => {
     const cat = AppState.categorias.find((c) => c.id === exp.categoria);
     const catName = getExpositorCategoryLabel(exp);
     const checklist = exp.checklist || [];
@@ -180,7 +193,7 @@ function renderExpositores() {
 // VISTA TARJETAS / TABLA
 // ==========================================
 function setExpositorView(view) {
-  AppState.expositorView = view === "table" ? "table" : "cards";
+  AppState.expositorView = ["table", "compact", "list"].includes(view) ? view : "cards";
   saveState();
   renderExpositores();
 }
@@ -250,3 +263,59 @@ function renderExpositoresTabla(list) {
 // ==========================================
 // 10. CATEGORÍAS
 // ==========================================
+
+// ==========================================
+// VISTAS COMPACTA Y LISTA + «VER MÁS»
+// Mismos datos, filtros y orden que las demás vistas. «Ver más» abre la tarjeta completa con todas sus acciones.
+// ==========================================
+function renderExpositoresMini(list, bz = getActiveBazaar()) {
+  return list.map((exp) => {
+    const saldo = getExpositorPendingBalance(exp);
+    const catName = getExpositorCategoryLabel(exp);
+    const stat = (label, value) => `<div class="exp-mini-stat"><span>${label}</span><strong>${value}</strong></div>`;
+    return `
+      <div class="exp-mini ${exp.banned ? "banned-card" : ""}">
+        <div class="exp-mini-head">
+          <div class="expositor-avatar exp-mini-avatar">${exp.foto ? `<img src="${exp.foto}" alt="${escapeHTML(exp.nombre)}">` : escapeHTML((exp.negocio || "?").charAt(0).toUpperCase())}</div>
+          <div class="exp-mini-title">
+            <div class="exp-mini-name" title="${escapeHTML(exp.negocio)}">${escapeHTML(exp.negocio)}</div>
+            <div class="exp-mini-sub keep-emoji" title="${escapeHTML(exp.nombre)}">${escapeHTML(exp.nombre)} · ${escapeHTML(catName)}</div>
+            <div class="exp-mini-badges">
+              <span class="exp-pill ${exp.pagado ? "ok" : "warn"}">${exp.pagado ? "✅ Pagado" : "⏳ Pendiente"}</span>
+              ${exp.banned ? `<span class="exp-pill bad">🚫 Baneado</span>` : ""}
+              ${diasBadgeHTML(exp, bz)}
+            </div>
+          </div>
+        </div>
+        <div class="exp-mini-stats">
+          ${stat("Ubicación", escapeHTML(getExpositorLocation(exp, bz)))}
+          ${stat("Costo total", formatCurrency(exp.costo))}
+          ${stat("Saldo", `<span style="color:${saldo > 0 ? "var(--color-unpaid)" : "var(--color-paid)"};">${formatCurrency(saldo)}</span>`)}
+        </div>
+        <div class="exp-mini-actions">
+          <button class="btn-primary btn-sm" onclick="openExpositorDetalle('${exp.id}')">Ver más</button>
+          <button class="btn-secondary btn-sm btn-edit" onclick="openModalExpositor('${exp.id}')" title="Editar expositor" aria-label="Editar expositor">✏️</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+let _expDetalleId = "";
+
+/** Dibuja (o redibuja) la tarjeta completa dentro de la ventana «Ver más». Devuelve false si ya no existe. */
+function drawExpositorDetalle() {
+  const body = document.getElementById("expositor-detalle-body");
+  const bz = getActiveBazaar();
+  const exp = bz?.expositores.find((item) => item.id === _expDetalleId);
+  if (!body) return false;
+  if (!exp) { closeModal("modal-expositor-detalle"); return false; }
+  const title = document.getElementById("expositor-detalle-title");
+  if (title) title.textContent = exp.negocio;
+  body.innerHTML = renderExpositorCardsHTML([exp], bz);
+  return true;
+}
+
+function openExpositorDetalle(id) {
+  _expDetalleId = id;
+  if (drawExpositorDetalle()) openModal("modal-expositor-detalle");
+}

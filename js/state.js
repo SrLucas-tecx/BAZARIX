@@ -419,7 +419,7 @@ function migrateState(parsed) {
   };
   (parsed.expositorPlantillas || []).forEach(migrarCaracteristicas);
   Object.values(parsed.bazaars || {}).forEach((bz) => (bz.expositores || []).forEach(migrarCaracteristicas));
-  if (!["cards", "table"].includes(parsed.expositorView)) parsed.expositorView = "cards";
+  if (!["cards", "compact", "list", "table"].includes(parsed.expositorView)) parsed.expositorView = "cards";
   if (!["recent", "az", "za"].includes(parsed.expositorSort)) parsed.expositorSort = "recent";
   if (!["previo", "post"].includes(parsed.tareasFase)) parsed.tareasFase = "previo";
   if (typeof parsed.diaEventoDia !== "string") parsed.diaEventoDia = "";   // pestaña de Día del Evento ("" = automática)

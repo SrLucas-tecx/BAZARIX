@@ -1,0 +1,38 @@
+/* ═══ BAZARIX — vistas.css · cargar después de iconos.css ═══
+   Vistas «Compacta» y «Lista» de Expositores (tarjeta con «Ver más» + lápiz, o filas). Usa los colores y tamaños de siempre. */
+.cards-grid.is-compact-view { grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); }
+.cards-grid.is-list-view    { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+
+.exp-mini {
+  display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; padding: var(--space-4);
+  background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+}
+.exp-mini.banned-card { opacity: .72; border-color: var(--color-danger); }
+.exp-mini-head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.exp-mini-avatar { width: 46px; height: 46px; flex: 0 0 46px; font-size: 1.1rem; }
+.exp-mini-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.exp-mini-name { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exp-mini-sub { color: var(--color-accent); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exp-mini-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.exp-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 10px; border-radius: var(--radius-full); font-size: var(--fs-xs); font-weight: 700; }
+.exp-pill.ok   { background: rgba(16,185,129,.16); color: var(--color-paid); }
+.exp-pill.warn { background: rgba(245,158,11,.16); color: var(--color-unpaid); }
+.exp-pill.bad  { background: rgba(239,68,68,.16);  color: var(--color-danger); }
+.exp-mini-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); padding-top: var(--space-3); border-top: 1px dashed var(--color-border); }
+.exp-mini-stat { min-width: 0; }
+.exp-mini-stat span { display: block; color: var(--color-text-muted); font-size: var(--fs-xs); font-weight: 600; }
+.exp-mini-stat strong { display: block; font-family: var(--font-display); font-size: var(--fs-md); overflow-wrap: anywhere; line-height: 1.25; }
+.exp-mini-actions { display: flex; gap: var(--space-2); }
+.exp-mini-actions .btn-primary { flex: 1; }
+.exp-mini-actions .btn-edit { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; padding: 0; }
+
+/* Lista: la misma tarjeta, en una sola fila */
+.is-list-view .exp-mini { flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); padding: var(--space-3) var(--space-5); border-radius: var(--radius-lg); }
+.is-list-view .exp-mini-head { flex: 1 1 16rem; }
+.is-list-view .exp-mini-stats { flex: 2 1 18rem; padding-top: 0; border-top: none; }
+.is-list-view .exp-mini-actions { flex: 0 0 auto; }
+.is-list-view .exp-mini-actions .btn-primary { flex: 0 0 auto; }
+@media (max-width: 600px) { .is-list-view .exp-mini-actions { flex: 1 1 100%; } .is-list-view .exp-mini-actions .btn-primary { flex: 1; } }
+
+/* «Ver más»: la tarjeta completa dentro de la ventana */
+#expositor-detalle-body .expositor-card:hover { transform: none; }

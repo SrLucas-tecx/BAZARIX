@@ -167,6 +167,7 @@ window.updateCharts                   = updateCharts;
 window.duplicarBazaar                  = duplicarBazaar;
 window.updateMapOrientation            = updateMapOrientation;
 window.setExpositorView                = setExpositorView;
+window.openExpositorDetalle            = openExpositorDetalle;
 window.openHistorial                   = openHistorial;
 window.clearHistorial                  = clearHistorial;
 window.renderPanelDiaEvento            = renderPanelDiaEvento;

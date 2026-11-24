@@ -1,10 +1,13 @@
-BAZARIX local - paquete: botones suaves + plano mas ligero (va ENCIMA de los anteriores)
+BAZARIX local - paquete: colores originales + vistas Compacta y Lista (va ENCIMA de los anteriores)
 
-NUEVOS:    botones.css
-CAMBIADOS: index.html (un <link>), sw.js, test_publicacion.js, docs/CHECKLIST_PUBLICACION.md
+NUEVOS:    vistas.css, presets/botones_suaves.css, test_vistas.js
+CAMBIADOS: index.html, sw.js, js/expositores.js, js/state.js, js/init.js, js/iconos_data.js, tools/generar_iconos.js,
+           test_publicacion.js, docs/CHECKLIST_PUBLICACION.md
+BORRAR:    botones.css  (de la raiz del proyecto; ya no se usa)
 
-Solo cambia el ASPECTO de: botones y etiquetas de las tarjetas (expositores, staff, extras, guardados) y la barra de herramientas del plano.
-Los iconos (Lucide) y todo lo demas quedan igual. No se modifico ningun CSS existente: para volver al estilo anterior
-basta quitar la linea  <link rel="stylesheet" href="botones.css">  de index.html.
+1) Colores y tamanos ORIGINALES: index.html ya no carga botones.css. El estilo suave quedo guardado como un PRESET
+   (presets/botones_suaves.css) por si lo quieres para la personalizacion del proximo sprint; no esta cargado.
+2) Expositores ahora tiene 4 vistas: Tarjetas (la de siempre), Compacta, Lista y Tabla. La elegida se recuerda.
+   En Compacta y Lista, "Ver mas" abre la tarjeta completa con todas sus acciones y el lapiz abre el editor.
 
-Probar: las 8 suites de siempre (node test_publicacion.js comprueba que botones.css este cargado y disponible sin conexion).
+Probar: node test_vistas.js y las 8 suites de siempre.

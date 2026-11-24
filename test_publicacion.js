@@ -28,7 +28,7 @@ class Resp { constructor(body, o = {}) { this.body = body; this.ok = o.ok !== fa
 const cachesFake = {
   open: async () => ({ put: async (r, v) => { store[key(r)] = v; }, add: async (u) => { if (u === "BAZARIX-svg.svg") throw new Error("404"); store[key(u)] = new Resp("shell:" + u); } }),
   match: async (r) => store[key(r)],
-  keys: async () => ["bazarix-v0", "otra-app", "bazarix-v6-3"],
+  keys: async () => ["bazarix-v0", "otra-app", "bazarix-v6-4"],
   delete: async (k) => { deleted.push(k); },
 };
 const deleted = []; let online = true; const netCalls = [];

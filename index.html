@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="permisos.css">
   <link rel="stylesheet" href="admin.css">
   <link rel="stylesheet" href="iconos.css">
-  <link rel="stylesheet" href="botones.css">
+  <link rel="stylesheet" href="vistas.css">
   <!-- Layout y estilos en Styles.css -->
 </head>
 <body class="dark">
@@ -208,11 +208,15 @@
             <option value="az">Nombre: A a Z</option>
             <option value="za">Nombre: Z a A</option>
           </select>
-          <div style="display:flex;gap:4px;">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;" role="group" aria-label="Vista de expositores">
             <button class="view-toggle-btn canvas-mode-btn active" data-view="cards"
-                    onclick="setExpositorView('cards')" title="Vista tarjetas">⊞ Tarjetas</button>
+                    onclick="setExpositorView('cards')" title="Tarjetas completas"><svg class="ico-i" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layout-grid"/></svg> Tarjetas</button>
+            <button class="view-toggle-btn canvas-mode-btn" data-view="compact"
+                    onclick="setExpositorView('compact')" title="Tarjetas compactas"><svg class="ico-i" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-layout-dashboard"/></svg> Compacta</button>
+            <button class="view-toggle-btn canvas-mode-btn" data-view="list"
+                    onclick="setExpositorView('list')" title="Lista en filas"><svg class="ico-i" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-list"/></svg> Lista</button>
             <button class="view-toggle-btn canvas-mode-btn" data-view="table"
-                    onclick="setExpositorView('table')" title="Vista tabla">☰ Tabla</button>
+                    onclick="setExpositorView('table')" title="Vista tabla"><svg class="ico-i" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-table"/></svg> Tabla</button>
           </div>
           <button class="btn-secondary btn-sm" onclick="switchTab('alertas')"
                   style="position:relative;" title="Alertas de pago próximo o vencido">
@@ -1315,6 +1319,17 @@
      Nuevos campos: Adelanto (exp-adelanto) + Fecha Límite (exp-fecha-limite)
      [EDITABLE: agrega campos al form y a saveExpositorHandler() en Core.js]
 -->
+<!-- Ventana «Ver más» de un expositor (va ANTES de las demás ventanas para que éstas se abran encima) -->
+<div id="modal-expositor-detalle" class="modal-overlay">
+  <div class="modal-box modal-box-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="expositor-detalle-title">Expositor</h2>
+      <button type="button" class="modal-close" aria-label="Cerrar" onclick="closeModal('modal-expositor-detalle')">✕</button>
+    </div>
+    <div class="modal-body" id="expositor-detalle-body"></div>
+  </div>
+</div>
+
 <div id="modal-expositor" class="modal-overlay">
   <div class="modal-box modal-box-wide expositor-wizard-modal">
     <div class="modal-header">
